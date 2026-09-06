@@ -12,7 +12,7 @@ class Student extends Model
         'branch',
         'roll_number',
         'phone',
-        'serno'
+        'serno',
     ];
 
     public function folder()

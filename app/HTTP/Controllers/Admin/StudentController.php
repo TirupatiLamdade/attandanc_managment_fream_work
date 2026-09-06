@@ -12,46 +12,56 @@ use Illuminate\Support\Facades\Hash;
 class StudentController extends Controller
 {
     /**
-     * Show students of a particular folder.
-     *
-     * Students are sorted by Roll Number ASC.
-     * Serno is displayed according to this sorted order.
+     * Get only current admin's folder.
      */
-    public function index($id)
+    private function ownedFolder($id)
     {
-        $folder = Folder::with([
-            'students' => function ($query) {
-                $query->orderByRaw(
-                    'CAST(roll_number AS UNSIGNED) ASC'
-                );
-            }
-        ])
-        ->where('created_by', Auth::id())
-        ->findOrFail($id);
+        return Folder::where('created_by', Auth::id())
+            ->findOrFail($id);
+    }
+
+    /**
+     * Student list.
+     */
+    public function index(Request $request, $id)
+    {
+        $folder = Folder::where('created_by', Auth::id())
+            ->findOrFail($id);
+
+        $search = trim($request->get('search', ''));
+
+        $students = Student::where('folder_id', $folder->id)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('roll_number', 'like', "%{$search}%")
+                        ->orWhere('branch', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%");
+                });
+            })
+            ->orderByRaw('CAST(roll_number AS UNSIGNED) ASC')
+            ->orderBy('roll_number', 'ASC')
+            ->orderBy('id', 'ASC')
+            ->get();
 
         return view(
             'admin.folders.students',
-            compact('folder')
+            compact(
+                'folder',
+                'students',
+                'search'
+            )
         );
     }
 
     /**
-     * Add student to folder.
+     * Add student.
      */
     public function store(Request $request, $folderId)
     {
-        // Only admin's folder
-        $folder = Folder::where('created_by', Auth::id())
-            ->findOrFail($folderId);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validation
-        |--------------------------------------------------------------------------
-        */
+        $folder = $this->ownedFolder($folderId);
 
         $validated = $request->validate([
-            // Student Name
             'name' => [
                 'required',
                 'string',
@@ -59,8 +69,6 @@ class StudentController extends Controller
                 'regex:/^[A-Za-z ]+$/',
             ],
 
-            // Roll Number
-            // Same folder मध्ये duplicate allowed नाही
             'roll_number' => [
                 'required',
                 'regex:/^[0-9]+$/',
@@ -68,7 +76,6 @@ class StudentController extends Controller
                 'unique:students,roll_number,NULL,id,folder_id,' . $folder->id,
             ],
 
-            // Branch
             'branch' => [
                 'required',
                 'string',
@@ -76,135 +83,41 @@ class StudentController extends Controller
                 'regex:/^[A-Za-z ]+$/',
             ],
 
-            // Mobile Number
             'phone' => [
                 'required',
                 'digits:10',
             ],
         ], [
+            'name.required' => 'Student name is required.',
+            'name.regex' => 'Student name can contain only letters and spaces.',
 
-            /*
-            |--------------------------------------------------------------------------
-            | Custom Error Messages
-            |--------------------------------------------------------------------------
-            */
+            'roll_number.required' => 'Roll number is required.',
+            'roll_number.regex' => 'Roll number must contain numbers only.',
+            'roll_number.unique' => 'This roll number already exists in this folder.',
 
-            'name.required' =>
-                'Student name is required.',
+            'branch.required' => 'Branch is required.',
+            'branch.regex' => 'Branch can contain only letters and spaces.',
 
-            'name.regex' =>
-                'Student name can contain only letters and spaces.',
-
-            'name.max' =>
-                'Student name is too long.',
-
-
-            'roll_number.required' =>
-                'Roll number is required.',
-
-            'roll_number.regex' =>
-                'Roll number must contain numbers only.',
-
-            'roll_number.max' =>
-                'Roll number is too large.',
-
-            'roll_number.unique' =>
-                'This roll number already exists in this folder.',
-
-
-            'branch.required' =>
-                'Branch is required.',
-
-            'branch.regex' =>
-                'Branch can contain only letters and spaces.',
-
-            'branch.max' =>
-                'Branch name is too long.',
-
-
-            'phone.required' =>
-                'Mobile number is required.',
-
-            'phone.digits' =>
-                'Mobile number must be exactly 10 digits.',
+            'phone.required' => 'Mobile number is required.',
+            'phone.digits' => 'Mobile number must be exactly 10 digits.',
         ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Automatic Serial Number
-        |--------------------------------------------------------------------------
-        |
-        | IMPORTANT:
-        |
-        | Serno is NOT used for sorting anymore.
-        |
-        | Roll Number decides the order.
-        |
-        | Example:
-        |
-        | Roll: 25
-        | Roll: 10
-        | Roll: 5
-        | Roll: 1
-        |
-        | Display:
-        |
-        | Serno 1 -> Roll 1
-        | Serno 2 -> Roll 5
-        | Serno 3 -> Roll 10
-        | Serno 4 -> Roll 25
-        |
-        |--------------------------------------------------------------------------
-        */
 
         Student::create([
             'folder_id' => $folder->id,
-
-            'name' =>
-                trim($validated['name']),
-
-            'branch' =>
-                trim($validated['branch']),
-
-            'roll_number' =>
-                $validated['roll_number'],
-
-            'phone' =>
-                $validated['phone'],
-
-            /*
-            |--------------------------------------------------------------------------
-            | Database Serno
-            |--------------------------------------------------------------------------
-            |
-            | Keep this value for compatibility with existing database.
-            | Actual displayed Serno comes from Blade $loop->iteration.
-            |
-            |--------------------------------------------------------------------------
-            */
-
+            'name' => trim($validated['name']),
+            'roll_number' => $validated['roll_number'],
+            'branch' => trim($validated['branch']),
+            'phone' => $validated['phone'],
             'serno' => 1,
         ]);
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Redirect
-        |--------------------------------------------------------------------------
-        */
-
         return redirect()
-            ->route(
-                'admin.students.index',
-                $folder->id
-            )
+            ->route('admin.students.index', $folder->id)
             ->with(
                 'success',
                 'Student added successfully.'
             );
     }
-
 
     /**
      * Update student.
@@ -214,22 +127,12 @@ class StudentController extends Controller
         $student = Student::with('folder')
             ->findOrFail($id);
 
-
-        // Security:
-        // Student must belong to logged-in admin's folder
         if (
             !$student->folder ||
             $student->folder->created_by !== Auth::id()
         ) {
             abort(403);
         }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Validation
-        |--------------------------------------------------------------------------
-        */
 
         $validated = $request->validate([
             'name' => [
@@ -243,13 +146,10 @@ class StudentController extends Controller
                 'required',
                 'regex:/^[0-9]+$/',
                 'max:50',
-
-                // Current student's roll number सोडून
-                // बाकी students मध्ये unique
-                'unique:students,roll_number,'
-                    . $student->id
-                    . ',id,folder_id,'
-                    . $student->folder_id,
+                'unique:students,roll_number,' .
+                $student->id .
+                ',id,folder_id,' .
+                $student->folder_id,
             ],
 
             'branch' => [
@@ -263,57 +163,14 @@ class StudentController extends Controller
                 'required',
                 'digits:10',
             ],
-        ], [
-
-            'name.required' =>
-                'Student name is required.',
-
-            'name.regex' =>
-                'Student name can contain only letters and spaces.',
-
-            'roll_number.required' =>
-                'Roll number is required.',
-
-            'roll_number.regex' =>
-                'Roll number must contain numbers only.',
-
-            'roll_number.unique' =>
-                'This roll number already exists in this folder.',
-
-            'branch.required' =>
-                'Branch is required.',
-
-            'branch.regex' =>
-                'Branch can contain only letters and spaces.',
-
-            'phone.required' =>
-                'Mobile number is required.',
-
-            'phone.digits' =>
-                'Mobile number must be exactly 10 digits.',
         ]);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Update Student
-        |--------------------------------------------------------------------------
-        */
 
         $student->update([
-            'name' =>
-                trim($validated['name']),
-
-            'branch' =>
-                trim($validated['branch']),
-
-            'roll_number' =>
-                $validated['roll_number'],
-
-            'phone' =>
-                $validated['phone'],
+            'name' => trim($validated['name']),
+            'roll_number' => $validated['roll_number'],
+            'branch' => trim($validated['branch']),
+            'phone' => $validated['phone'],
         ]);
-
 
         return redirect()
             ->route(
@@ -326,60 +183,40 @@ class StudentController extends Controller
             );
     }
 
-
     /**
      * Delete student.
      */
     public function destroy(Request $request, $id)
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Password Validation
-        |--------------------------------------------------------------------------
-        */
-
         $request->validate([
             'password' => [
                 'required',
+                'string',
             ],
         ]);
 
+        $user = Auth::user();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Check Admin Password
-        |--------------------------------------------------------------------------
-        */
+        if (!$user) {
+            abort(403);
+        }
 
         if (
             !Hash::check(
                 $request->password,
-                Auth::user()->password
+                $user->password
             )
         ) {
             return back()
+                ->withInput()
                 ->with(
                     'error',
-                    'Wrong admin password'
+                    'Wrong admin password.'
                 );
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Find Student
-        |--------------------------------------------------------------------------
-        */
-
         $student = Student::with('folder')
             ->findOrFail($id);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Security Check
-        |--------------------------------------------------------------------------
-        */
 
         if (
             !$student->folder ||
@@ -388,24 +225,15 @@ class StudentController extends Controller
             abort(403);
         }
 
-
         $folderId = $student->folder_id;
 
-
         /*
-        |--------------------------------------------------------------------------
-        | Delete Student
-        |--------------------------------------------------------------------------
-        */
+         * Delete student's attendance records together with student.
+         * This is intentionally controlled by admin delete action.
+         */
+        $student->attendances()->delete();
 
         $student->delete();
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Redirect
-        |--------------------------------------------------------------------------
-        */
 
         return redirect()
             ->route(
