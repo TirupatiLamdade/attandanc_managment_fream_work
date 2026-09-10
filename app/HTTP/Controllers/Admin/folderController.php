@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Folder;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class FolderController extends Controller
 {
@@ -14,13 +16,35 @@ class FolderController extends Controller
      */
     public function index()
     {
+        $today = Carbon::today()->toDateString();
+
         $folders = Folder::where(
                 'created_by',
                 Auth::id()
             )
             ->withCount('students')
+            ->with(['attendances' => function ($query) use ($today) {
+                $query->where('date', $today)->whereIn('status', ['present', 'absent']);
+            }])
             ->latest()
             ->get();
+
+        foreach ($folders as $folder) {
+            $applicableStudentsCount = $folder->students->filter(function ($student) use ($today) {
+                if (!$student->created_at) {
+                    return true;
+                }
+                return Carbon::parse($student->created_at)->toDateString() <= $today;
+            })->count();
+
+            $markedCount = $folder->attendances->unique('student_id')->count();
+
+            if ($applicableStudentsCount > 0 && $markedCount >= $applicableStudentsCount) {
+                $folder->today_attendance_marked = true;
+            } else {
+                $folder->today_attendance_marked = false;
+            }
+        }
 
         return view(
             'admin.folders.index',
@@ -38,7 +62,12 @@ class FolderController extends Controller
                 'required',
                 'string',
                 'max:255',
+                Rule::unique('folders', 'name')->where(function ($query) {
+                    return $query->where('created_by', Auth::id());
+                }),
             ],
+        ], [
+            'name.unique' => 'A folder with this name already exists.',
         ]);
 
         Folder::create([
@@ -47,7 +76,7 @@ class FolderController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.folders.index')
+            ->route('admin.dashboard')
             ->with(
                 'success',
                 'Folder created successfully.'
@@ -88,7 +117,12 @@ class FolderController extends Controller
                 'required',
                 'string',
                 'max:255',
+                Rule::unique('folders', 'name')->where(function ($query) {
+                    return $query->where('created_by', Auth::id());
+                })->ignore($folder->id),
             ],
+        ], [
+            'name.unique' => 'A folder with this name already exists.',
         ]);
 
         $folder->update([

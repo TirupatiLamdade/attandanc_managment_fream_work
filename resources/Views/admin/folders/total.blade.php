@@ -4,139 +4,128 @@
 
 @section('content')
 
-<div class="mb-6">
+<div class="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    <a
-        href="{{ route('admin.folders.show', $folder->id) }}"
-        class="text-accent hover:underline text-sm"
-    >
-        ← Back to Folder
-    </a>
+    {{-- ===================================================== --}}
+    {{-- PAGE HEADER WITH BACK BUTTON & FOLDER TITLE --}}
+    {{-- ===================================================== --}}
+    <div class="mb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-surface border border-borderCol p-8 sm:p-10 rounded-3xl shadow-darkCard">
 
-    <h1 class="text-3xl font-bold mt-3">
-        Today's Attendance
-    </h1>
+            <div class="space-y-3">
+                <!-- Back to Folder Overview Button -->
+                <div>
+                    <a
+                        href="{{ route('admin.folders.show', $folder->id) }}"
+                        class="btn-outline inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md transition-all"
+                    >
+                        &larr; Back
+                    </a>
+                </div>
 
-    <p class="text-secondary mt-1">
-        {{ $folder->name }} • {{ now()->format('d M Y') }}
-    </p>
+                <!-- Title -->
+                <h1 class="text-4xl sm:text-5xl font-extrabold text-textPrimary tracking-tight break-words flex items-baseline gap-3 pt-1">
+                    <span class="w-4 h-4 rounded-full bg-orangeAccent inline-block shrink-0"></span>
+                    <span>{{ $folder->name }} <span class="text-textMuted font-medium text-2xl">/ Attendance Summary</span></span>
+                </h1>
+
+                <p class="text-textSecondary text-base sm:text-lg">
+                    {{ now()->format('d M Y') }} • Real-time overview of student attendance statistics and progress.
+                </p>
+            </div>
+
+        </div>
+    </div>
+
+    {{-- ===================================================== --}}
+    {{-- STATISTICS SUMMARY CARDS --}}
+    {{-- ===================================================== --}}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
+
+        <div class="bg-surface border border-borderCol p-6 rounded-3xl shadow-darkCard flex flex-col justify-between text-center">
+            <div class="text-4xl mb-2">
+                👥
+            </div>
+            <div class="text-4xl font-extrabold text-textPrimary tracking-tight mt-1">
+                {{ $total }}
+            </div>
+            <div class="text-textSecondary text-sm font-semibold uppercase tracking-wider mt-2">
+                Total Students
+            </div>
+        </div>
+
+        <div class="bg-surface border border-emerald-500/40 p-6 rounded-3xl shadow-darkCard flex flex-col justify-between text-center">
+            <div class="text-4xl mb-2">
+                ✅
+            </div>
+            <div class="text-4xl font-extrabold text-emerald-400 tracking-tight mt-1">
+                {{ $present }}
+            </div>
+            <div class="text-emerald-400 text-sm font-semibold uppercase tracking-wider mt-2">
+                Present
+            </div>
+        </div>
+
+        <div class="bg-surface border border-red-500/40 p-6 rounded-3xl shadow-darkCard flex flex-col justify-between text-center">
+            <div class="text-4xl mb-2">
+                ❌
+            </div>
+            <div class="text-4xl font-extrabold text-red-400 tracking-tight mt-1">
+                {{ $absent }}
+            </div>
+            <div class="text-red-400 text-sm font-semibold uppercase tracking-wider mt-2">
+                Absent
+            </div>
+        </div>
+
+        <div class="bg-surface border border-borderCol p-6 rounded-3xl shadow-darkCard flex flex-col justify-between text-center">
+            <div class="text-4xl mb-2">
+                📝
+            </div>
+            <div class="text-4xl font-extrabold text-textPrimary tracking-tight mt-1">
+                {{ $notMarked }}
+            </div>
+            <div class="text-textSecondary text-sm font-semibold uppercase tracking-wider mt-2">
+                Not Marked
+            </div>
+        </div>
+
+        <div class="bg-surface border border-blue-500/40 p-6 rounded-3xl shadow-darkCard flex flex-col justify-between text-center">
+            <div class="text-4xl mb-2">
+                📊
+            </div>
+            <div class="text-4xl font-extrabold text-blue-400 tracking-tight mt-1">
+                {{ $percentage }}%
+            </div>
+            <div class="text-blue-400 text-sm font-semibold uppercase tracking-wider mt-2">
+                Present %
+            </div>
+        </div>
+
+    </div>
+
+    {{-- ===================================================== --}}
+    {{-- PROGRESS BAR SECTION --}}
+    {{-- ===================================================== --}}
+    @if($total > 0)
+        <div class="bg-surface border border-borderCol p-8 rounded-3xl shadow-darkCard mb-10">
+            <h2 class="text-xl font-bold text-textPrimary mb-4">
+                Today's Attendance Progress
+            </h2>
+
+            <div class="w-full h-5 bg-[#172033] rounded-full overflow-hidden p-0.5 border border-borderCol shadow-inner">
+                <div
+                    class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500"
+                    style="width: {{ min(100, $percentage) }}%"
+                ></div>
+            </div>
+
+            <div class="text-center text-textSecondary font-semibold mt-3 text-base">
+                {{ $present }} Present out of {{ $total }} students
+            </div>
+        </div>
+    @endif
 
 </div>
-
-
-<div class="grid md:grid-cols-2 lg:grid-cols-5 gap-5">
-
-
-    <div class="bg-surface border border-border rounded-xl p-6 text-center">
-
-        <div class="text-4xl">
-            👥
-        </div>
-
-        <div class="text-3xl font-bold mt-3">
-            {{ $total }}
-        </div>
-
-        <div class="text-secondary">
-            Total Students
-        </div>
-
-    </div>
-
-
-    <div class="bg-surface border border-success rounded-xl p-6 text-center">
-
-        <div class="text-4xl">
-            ✅
-        </div>
-
-        <div class="text-3xl font-bold text-success mt-3">
-            {{ $present }}
-        </div>
-
-        <div class="text-secondary">
-            Present
-        </div>
-
-    </div>
-
-
-    <div class="bg-surface border border-danger rounded-xl p-6 text-center">
-
-        <div class="text-4xl">
-            ❌
-        </div>
-
-        <div class="text-3xl font-bold text-danger mt-3">
-            {{ $absent }}
-        </div>
-
-        <div class="text-secondary">
-            Absent
-        </div>
-
-    </div>
-
-
-    <div class="bg-surface border border-border rounded-xl p-6 text-center">
-
-        <div class="text-4xl">
-            📝
-        </div>
-
-        <div class="text-3xl font-bold mt-3">
-            {{ $notMarked }}
-        </div>
-
-        <div class="text-secondary">
-            Not Marked
-        </div>
-
-    </div>
-
-
-    <div class="bg-surface border border-border rounded-xl p-6 text-center">
-
-        <div class="text-4xl">
-            📊
-        </div>
-
-        <div class="text-3xl font-bold mt-3">
-            {{ $percentage }}%
-        </div>
-
-        <div class="text-secondary">
-            Present %
-        </div>
-
-    </div>
-
-</div>
-
-
-@if($total > 0)
-
-<div class="bg-surface border border-border rounded-xl p-6 mt-7">
-
-    <h2 class="font-bold mb-4">
-        Today's Attendance Progress
-    </h2>
-
-    <div class="w-full h-5 bg-bg rounded-full overflow-hidden">
-
-        <div
-            class="bg-success h-full rounded-full"
-            style="width: {{ min(100, $percentage) }}%"
-        ></div>
-
-    </div>
-
-    <div class="text-center text-secondary mt-3">
-        {{ $present }} Present out of {{ $total }} students
-    </div>
-
-</div>
-
-@endif
 
 @endsection

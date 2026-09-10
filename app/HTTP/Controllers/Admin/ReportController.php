@@ -17,16 +17,11 @@ class ReportController extends Controller
      */
     private function ownedFolder($id)
     {
-        return Folder::where(
-                'created_by',
-                Auth::id()
-            )
+        return Folder::where('created_by', Auth::id())
             ->with([
                 'students' => function ($query) {
                     $query
-                        ->orderByRaw(
-                            'CAST(roll_number AS UNSIGNED) ASC'
-                        )
+                        ->orderByRaw('CAST(roll_number AS UNSIGNED) ASC')
                         ->orderBy('roll_number')
                         ->orderBy('id');
                 }
@@ -46,6 +41,12 @@ class ReportController extends Controller
         string $end
     ) {
         $today = Carbon::today();
+
+        /*
+        |--------------------------------------------------------------------------
+        | DATE RANGE
+        |--------------------------------------------------------------------------
+        */
 
         if ($type === 'daily') {
 
@@ -68,6 +69,13 @@ class ReportController extends Controller
                 $month
             )->endOfMonth();
 
+        } elseif ($type === 'all') {
+
+            // For 'all', range starts from the earliest student creation or default past date, up to today
+            $earliestStudent = $folder->students->min('created_at');
+            $rangeStart = $earliestStudent ? Carbon::parse($earliestStudent)->startOfDay() : $today->copy()->subYear();
+            $rangeEnd = $today->copy()->endOfDay();
+
         } else {
 
             $rangeStart = Carbon::createFromFormat(
@@ -88,17 +96,185 @@ class ReportController extends Controller
         }
 
         /*
-         * Never report future dates.
-         */
+        |--------------------------------------------------------------------------
+        | FUTURE DATE PROTECTION
+        |--------------------------------------------------------------------------
+        */
+
         if ($rangeStart->gt($today)) {
-            $rangeStart = $today->copy();
+            $rangeStart = $today->copy()->startOfDay();
         }
 
         if ($rangeEnd->gt($today)) {
             $rangeEnd = $today->copy()->endOfDay();
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | DAILY REPORT
+        |--------------------------------------------------------------------------
+        */
+
+        if ($type === 'daily') {
+
+            $dailyAttendances = Attendance::where(
+                'folder_id',
+                $folder->id
+            )
+                ->whereDate(
+                    'date',
+                    $rangeStart->toDateString()
+                )
+                ->whereIn(
+                    'status',
+                    ['present', 'absent']
+                )
+                ->with('student')
+                ->get();
+
+            $studentsData = [];
+
+            foreach ($dailyAttendances as $attendance) {
+
+                if (!$attendance->student) {
+                    continue;
+                }
+
+                $student = $attendance->student;
+
+                if (
+                    $student->created_at &&
+                    Carbon::parse(
+                        $student->created_at
+                    )->startOfDay()->gt($rangeStart)
+                ) {
+                    continue;
+                }
+
+                $studentsData[] = [
+                    'serno' => 0,
+
+                    'name' =>
+                        $student->name,
+
+                    'roll' =>
+                        $student->roll_number,
+
+                    'branch' =>
+                        $student->branch,
+
+                    'phone' =>
+                        $student->phone,
+
+                    'added_date' =>
+                        $student->created_at
+                            ? Carbon::parse(
+                                $student->created_at
+                            )->format('Y-m-d')
+                            : null,
+
+                    'present' =>
+                        $attendance->status === 'present'
+                            ? 1
+                            : 0,
+
+                    'absent' =>
+                        $attendance->status === 'absent'
+                            ? 1
+                            : 0,
+
+                    'not_marked' => 0,
+
+                    'total_days' => 1,
+
+                    'percentage' =>
+                        $attendance->status === 'present'
+                            ? 100
+                            : 0,
+
+                    'daily_status' =>
+                        ucfirst(
+                            strtolower(
+                                $attendance->status
+                            )
+                        ),
+                ];
+            }
+
+            usort(
+                $studentsData,
+                function ($a, $b) {
+
+                    $rollA = intval(
+                        preg_replace(
+                            '/[^0-9]/',
+                            '',
+                            $a['roll']
+                        )
+                    );
+
+                    $rollB = intval(
+                        preg_replace(
+                            '/[^0-9]/',
+                            '',
+                            $b['roll']
+                        )
+                    );
+
+                    if ($rollA === $rollB) {
+                        return strnatcasecmp(
+                            $a['roll'],
+                            $b['roll']
+                        );
+                    }
+
+                    return $rollA <=> $rollB;
+                }
+            );
+
+            foreach (
+                $studentsData
+                as $index => &$studentData
+            ) {
+                $studentData['serno'] =
+                    $index + 1;
+            }
+
+            unset($studentData);
+
+            return [
+                'studentsData' => $studentsData,
+                'rangeStart' => $rangeStart,
+                'rangeEnd' => $rangeEnd,
+                'hasAttendance' => count($studentsData) > 0,
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | MONTHLY / CUSTOM / ALL REPORT
+        |--------------------------------------------------------------------------
+        */
+
         $studentsData = [];
+
+        $periodAttendanceExists =
+            Attendance::where(
+                'folder_id',
+                $folder->id
+            )
+                ->whereBetween(
+                    'date',
+                    [
+                        $rangeStart->toDateString(),
+                        $rangeEnd->toDateString(),
+                    ]
+                )
+                ->whereIn(
+                    'status',
+                    ['present', 'absent']
+                )
+                ->exists();
 
         foreach ($folder->students as $student) {
 
@@ -109,108 +285,84 @@ class ReportController extends Controller
                     )->startOfDay()
                     : $rangeStart->copy();
 
-            /*
-             * Applicable period starts at:
-             * max(report start, student added date)
-             */
             $applicableStart =
-                $rangeStart->copy()->max(
-                    $studentAdded
-                );
+                $rangeStart
+                    ->copy()
+                    ->max($studentAdded);
 
             $applicableEnd =
-                $rangeEnd->copy()->min(
-                    $today->copy()->endOfDay()
-                );
-
-            $present = 0;
-            $absent = 0;
-            $notMarked = 0;
-            $totalDays = 0;
-            $dailyStatus = 'Not Attendance Marked';
-
-            /*
-             * Student did not exist during selected period.
-             */
-            if ($applicableStart->gt($applicableEnd)) {
-
-                $dailyStatus = 'Not Applicable';
-
-            } else {
-
-                $totalDays =
-                    $applicableStart
-                        ->copy()
-                        ->startOfDay()
-                        ->diffInDays(
-                            $applicableEnd
-                                ->copy()
-                                ->startOfDay()
-                        ) + 1;
-
-                $records = Attendance::where(
-                        'folder_id',
-                        $folder->id
-                    )
-                    ->where(
-                        'student_id',
-                        $student->id
-                    )
-                    ->whereBetween(
-                        'date',
-                        [
-                            $applicableStart->toDateString(),
-                            $applicableEnd->toDateString(),
-                        ]
-                    )
-                    ->get();
-
-                $present =
-                    $records
-                        ->where(
-                            'status',
-                            'present'
-                        )
-                        ->count();
-
-                $absent =
-                    $records
-                        ->where(
-                            'status',
-                            'absent'
-                        )
-                        ->count();
-
-                $notMarked =
-                    max(
-                        0,
-                        $totalDays -
-                        $present -
-                        $absent
+                $rangeEnd
+                    ->copy()
+                    ->min(
+                        $today
+                            ->copy()
+                            ->endOfDay()
                     );
 
-                /*
-                 * Daily status.
-                 */
-                if ($type === 'daily') {
-
-                    $record =
-                        $records->first();
-
-                    if ($record) {
-
-                        $dailyStatus =
-                            ucfirst(
-                                $record->status
-                            );
-
-                    } else {
-
-                        $dailyStatus =
-                            'Not Attendance Marked';
-                    }
-                }
+            if (
+                $applicableStart
+                    ->gt($applicableEnd)
+            ) {
+                continue;
             }
+
+            $totalDays =
+                $applicableStart
+                    ->copy()
+                    ->startOfDay()
+                    ->diffInDays(
+                        $applicableEnd
+                            ->copy()
+                            ->startOfDay()
+                    ) + 1;
+
+            $records = Attendance::where(
+                'folder_id',
+                $folder->id
+            )
+                ->where(
+                    'student_id',
+                    $student->id
+                )
+                ->whereBetween(
+                    'date',
+                    [
+                        $applicableStart
+                            ->toDateString(),
+
+                        $applicableEnd
+                            ->toDateString(),
+                    ]
+                )
+                ->whereIn(
+                    'status',
+                    ['present', 'absent']
+                )
+                ->get();
+
+            $present =
+                $records
+                    ->where(
+                        'status',
+                        'present'
+                    )
+                    ->count();
+
+            $absent =
+                $records
+                    ->where(
+                        'status',
+                        'absent'
+                    )
+                    ->count();
+
+            $notMarked =
+                max(
+                    0,
+                    $totalDays -
+                    $present -
+                    $absent
+                );
 
             $percentage =
                 $totalDays > 0
@@ -220,8 +372,11 @@ class ReportController extends Controller
                     )
                     : 0;
 
-            $studentsData[] = [
+            if ($type !== 'all' && $records->count() === 0) {
+                continue;
+            }
 
+            $studentsData[] = [
                 'serno' =>
                     count($studentsData) + 1,
 
@@ -238,9 +393,8 @@ class ReportController extends Controller
                     $student->phone,
 
                 'added_date' =>
-                    $studentAdded->format(
-                        'Y-m-d'
-                    ),
+                    $studentAdded
+                        ->format('Y-m-d'),
 
                 'present' =>
                     $present,
@@ -258,47 +412,68 @@ class ReportController extends Controller
                     $percentage,
 
                 'daily_status' =>
-                    $dailyStatus,
+                    null,
             ];
         }
 
         return [
-            'studentsData' => $studentsData,
-            'rangeStart' => $rangeStart,
-            'rangeEnd' => $rangeEnd,
+            'studentsData' =>
+                $studentsData,
+
+            'rangeStart' =>
+                $rangeStart,
+
+            'rangeEnd' =>
+                $rangeEnd,
+
+            'hasAttendance' =>
+                $type === 'all' ? count($studentsData) > 0 : ($periodAttendanceExists && count($studentsData) > 0),
         ];
     }
 
     /**
      * Show report.
      */
-    public function show(Request $request, $id)
-    {
-        $folder = $this->ownedFolder($id);
+    public function show(
+        Request $request,
+        $id
+    ) {
+        $folder =
+            $this->ownedFolder($id);
 
-        $type = $request->get(
-            'type',
-            'daily'
-        );
+        $type =
+            $request->get(
+                'type',
+                'daily'
+            );
 
-        if (!in_array(
-            $type,
-            ['daily', 'monthly', 'custom'],
-            true
-        )) {
+        if (
+            !in_array(
+                $type,
+                [
+                    'daily',
+                    'monthly',
+                    'custom',
+                    'all'
+                ],
+                true
+            )
+        ) {
             $type = 'daily';
         }
 
         $date =
             $request->get(
                 'date',
-                Carbon::today()->format('Y-m-d')
+                Carbon::today()
+                    ->format('Y-m-d')
             );
 
         $month =
             $request->get(
                 'month',
-                Carbon::today()->format('Y-m')
+                Carbon::today()
+                    ->format('Y-m')
             );
 
         $start =
@@ -342,12 +517,23 @@ class ReportController extends Controller
             'admin.folders.report',
             array_merge(
                 [
-                    'folder' => $folder,
-                    'type' => $type,
-                    'date' => $date,
-                    'month' => $month,
-                    'start' => $start,
-                    'end' => $end,
+                    'folder' =>
+                        $folder,
+
+                    'type' =>
+                        $type,
+
+                    'date' =>
+                        $date,
+
+                    'month' =>
+                        $month,
+
+                    'start' =>
+                        $start,
+
+                    'end' =>
+                        $end,
                 ],
                 $data
             )
@@ -359,43 +545,58 @@ class ReportController extends Controller
      */
     public function total($id)
     {
-        $folder = $this->ownedFolder($id);
+        $folder =
+            $this->ownedFolder($id);
 
-        $today = Carbon::today();
+        $today =
+            Carbon::today();
 
         $total =
-            $folder->students->filter(
-                function ($student) use ($today) {
+            $folder->students
+                ->filter(
+                    function ($student)
+                    use ($today) {
 
-                    if (!$student->created_at) {
-                        return true;
+                        if (
+                            !$student->created_at
+                        ) {
+                            return true;
+                        }
+
+                        return Carbon::parse(
+                            $student->created_at
+                        )
+                            ->startOfDay()
+                            ->lte($today);
                     }
-
-                    return Carbon::parse(
-                        $student->created_at
-                    )->startOfDay()->lte($today);
-                }
-            )->count();
+                )
+                ->count();
 
         $attendances =
             Attendance::where(
                 'folder_id',
                 $folder->id
             )
-            ->whereDate(
-                'date',
-                $today->toDateString()
-            )
-            ->get();
+                ->whereDate(
+                    'date',
+                    $today->toDateString()
+                )
+                ->get();
 
         $present =
             $attendances
-                ->where('status', 'present')
+                ->where(
+                    'status',
+                    'present'
+                )
                 ->count();
 
         $absent =
             $attendances
-                ->where('status', 'absent')
+                ->where(
+                    'status',
+                    'absent'
+                )
                 ->count();
 
         $marked =
@@ -430,11 +631,14 @@ class ReportController extends Controller
     }
 
     /**
-     * Download PDF.
+     * Download PDF ONLY if attendance exists.
      */
-    public function pdf(Request $request, $id)
-    {
-        $folder = $this->ownedFolder($id);
+    public function pdf(
+        Request $request,
+        $id
+    ) {
+        $folder =
+            $this->ownedFolder($id);
 
         $type =
             $request->get(
@@ -442,16 +646,36 @@ class ReportController extends Controller
                 'daily'
             );
 
+        if (
+            !in_array(
+                $type,
+                [
+                    'daily',
+                    'monthly',
+                    'custom',
+                    'all'
+                ],
+                true
+            )
+        ) {
+            return back()->with(
+                'error',
+                'Invalid report type.'
+            );
+        }
+
         $date =
             $request->get(
                 'date',
-                Carbon::today()->format('Y-m-d')
+                Carbon::today()
+                    ->format('Y-m-d')
             );
 
         $month =
             $request->get(
                 'month',
-                Carbon::today()->format('Y-m')
+                Carbon::today()
+                    ->format('Y-m')
             );
 
         $start =
@@ -470,30 +694,62 @@ class ReportController extends Controller
                     ->format('Y-m-d')
             );
 
-        $data =
-            $this->buildReportData(
-                $folder,
-                $type,
-                $date,
-                $month,
-                $start,
-                $end
-            );
+        try {
 
-        $pdf = Pdf::loadView(
-            'admin.folders.pdf',
-            array_merge(
-                [
-                    'folder' => $folder,
-                    'type' => $type,
-                    'date' => $date,
-                    'month' => $month,
-                    'start' => $start,
-                    'end' => $end,
-                ],
-                $data
-            )
-        );
+            $data =
+                $this->buildReportData(
+                    $folder,
+                    $type,
+                    $date,
+                    $month,
+                    $start,
+                    $end
+                );
+
+        } catch (\Throwable $e) {
+
+            return back()->with(
+                'error',
+                'Invalid report date selection.'
+            );
+        }
+
+        if (
+            !$data['hasAttendance'] ||
+            count($data['studentsData']) === 0
+        ) {
+            return back()->with(
+                'error',
+                'No attendance records found for this period. PDF is not available.'
+            );
+        }
+
+        $pdf =
+            Pdf::loadView(
+                'admin.folders.pdf',
+                array_merge(
+                    [
+                        'folder' =>
+                            $folder,
+
+                        'type' =>
+                            $type,
+
+                        'date' =>
+                            $date,
+
+                        'month' =>
+                            $month,
+
+                        'start' =>
+                            $start,
+
+                        'end' =>
+                            $end,
+                    ],
+                    $data
+                )
+            );
 
         return $pdf->download(
             'attendance_report_' .

@@ -17,7 +17,7 @@ use App\Http\Controllers\Student\ReportController as StudentReportController;
 
 /*
 |--------------------------------------------------------------------------
-| Landing Page
+| Landing
 |--------------------------------------------------------------------------
 */
 
@@ -32,19 +32,25 @@ Route::get('/', function () {
 |--------------------------------------------------------------------------
 */
 
-Route::get('/admin/login', [DashboardController::class, 'showLogin'])
-    ->name('admin.login');
+Route::get(
+    '/admin/login',
+    [DashboardController::class, 'showLogin']
+)->name('admin.login');
 
-Route::post('/admin/login', [DashboardController::class, 'login'])
-    ->name('admin.login.post');
+Route::post(
+    '/admin/login',
+    [DashboardController::class, 'login']
+)->name('admin.login.post');
 
-Route::post('/admin/logout', [DashboardController::class, 'logout'])
-    ->name('admin.logout');
+Route::post(
+    '/admin/logout',
+    [DashboardController::class, 'logout']
+)->name('admin.logout');
 
 
 /*
 |--------------------------------------------------------------------------
-| ADMIN ROUTES
+| ADMIN
 |--------------------------------------------------------------------------
 */
 
@@ -58,8 +64,10 @@ Route::middleware(['admin'])
         |--------------------------------------------------------------------------
         */
 
-        Route::get('/dashboard', [DashboardController::class, 'index'])
-            ->name('admin.dashboard');
+        Route::get(
+            '/dashboard',
+            [DashboardController::class, 'index']
+        )->name('admin.dashboard');
 
 
         /*
@@ -68,17 +76,25 @@ Route::middleware(['admin'])
         |--------------------------------------------------------------------------
         */
 
-        Route::post('/folders', [FolderController::class, 'store'])
-            ->name('admin.folders.store');
+        Route::post(
+            '/folders',
+            [FolderController::class, 'store']
+        )->name('admin.folders.store');
 
-        Route::get('/folders/{id}', [FolderController::class, 'show'])
-            ->name('admin.folders.show');
+        Route::get(
+            '/folders/{id}',
+            [FolderController::class, 'show']
+        )->name('admin.folders.show');
 
-        Route::put('/folders/{id}', [FolderController::class, 'update'])
-            ->name('admin.folders.update');
+        Route::put(
+            '/folders/{id}',
+            [FolderController::class, 'update']
+        )->name('admin.folders.update');
 
-        Route::delete('/folders/{id}', [FolderController::class, 'destroy'])
-            ->name('admin.folders.destroy');
+        Route::delete(
+            '/folders/{id}',
+            [FolderController::class, 'destroy']
+        )->name('admin.folders.destroy');
 
 
         /*
@@ -87,17 +103,25 @@ Route::middleware(['admin'])
         |--------------------------------------------------------------------------
         */
 
-        Route::get('/folders/{id}/students', [StudentController::class, 'index'])
-            ->name('admin.students.index');
+        Route::get(
+            '/folders/{id}/students',
+            [StudentController::class, 'index']
+        )->name('admin.students.index');
 
-        Route::post('/folders/{id}/students', [StudentController::class, 'store'])
-            ->name('admin.students.store');
+        Route::post(
+            '/folders/{id}/students',
+            [StudentController::class, 'store']
+        )->name('admin.students.store');
 
-        Route::put('/students/{id}', [StudentController::class, 'update'])
-            ->name('admin.students.update');
+        Route::put(
+            '/students/{id}',
+            [StudentController::class, 'update']
+        )->name('admin.students.update');
 
-        Route::delete('/students/{id}', [StudentController::class, 'destroy'])
-            ->name('admin.students.destroy');
+        Route::delete(
+            '/students/{id}',
+            [StudentController::class, 'destroy']
+        )->name('admin.students.destroy');
 
 
         /*
@@ -106,8 +130,10 @@ Route::middleware(['admin'])
         |--------------------------------------------------------------------------
         */
 
-        Route::get('/folders/{id}/mark', [AttendanceController::class, 'show'])
-            ->name('admin.attendance.show');
+        Route::get(
+            '/folders/{id}/mark',
+            [AttendanceController::class, 'show']
+        )->name('admin.attendance.show');
 
         Route::post(
             '/folders/{id}/attendance/submit',
@@ -117,39 +143,51 @@ Route::middleware(['admin'])
 
         /*
         |--------------------------------------------------------------------------
-        | PAST ATTENDANCE UNLOCK / LOCK
+        | STUDENT-SPECIFIC ATTENDANCE HISTORY
         |--------------------------------------------------------------------------
-        |
-        | Added only for the 10-click past attendance feature.
-        | Existing attendance logic is not changed.
-        |
         */
 
         Route::post(
-            '/folders/{id}/attendance/unlock',
+            '/folders/{folderId}/students/{studentId}/attendance/unlock',
             [AttendanceController::class, 'unlockPast']
         )->name('admin.attendance.unlock');
 
+        Route::get(
+            '/folders/{folderId}/students/{studentId}/attendance/history',
+            [AttendanceController::class, 'history']
+        )->name('admin.attendance.history');
+
         Route::post(
-            '/folders/{id}/attendance/lock',
-            [AttendanceController::class, 'lockPast']
-        )->name('admin.attendance.lock');
+            '/folders/{folderId}/students/{studentId}/attendance/history',
+            [AttendanceController::class, 'saveHistory']
+        )->name('admin.attendance.history.save');
+
+        Route::post(
+            '/folders/{folderId}/students/{studentId}/attendance/history/lock',
+            [AttendanceController::class, 'lockHistory']
+        )->name('admin.attendance.history.lock');
 
 
         /*
         |--------------------------------------------------------------------------
-        | REPORTS
+        | REPORT
         |--------------------------------------------------------------------------
         */
 
-        Route::get('/folders/{id}/report', [ReportController::class, 'show'])
-            ->name('admin.report.show');
+        Route::get(
+            '/folders/{id}/report',
+            [ReportController::class, 'show']
+        )->name('admin.report.show');
 
-        Route::get('/folders/{id}/total', [ReportController::class, 'total'])
-            ->name('admin.report.total');
+        Route::get(
+            '/folders/{id}/total',
+            [ReportController::class, 'total']
+        )->name('admin.report.total');
 
-        Route::get('/folders/{id}/pdf', [ReportController::class, 'pdf'])
-            ->name('admin.report.pdf');
+        Route::get(
+            '/folders/{id}/pdf',
+            [ReportController::class, 'pdf']
+        )->name('admin.report.pdf');
 
 
         /*
@@ -158,14 +196,20 @@ Route::middleware(['admin'])
         |--------------------------------------------------------------------------
         */
 
-        Route::post('/subjects', [SubjectController::class, 'store'])
-            ->name('admin.subjects.store');
+        Route::post(
+            '/subjects',
+            [SubjectController::class, 'store']
+        )->name('admin.subjects.store');
 
-        Route::get('/subjects/{id}', [SubjectController::class, 'show'])
-            ->name('admin.subjects.show');
+        Route::get(
+            '/subjects/{id}',
+            [SubjectController::class, 'show']
+        )->name('admin.subjects.show');
 
-        Route::get('/subjects/{id}/students', [SubjectController::class, 'students'])
-            ->name('admin.subjects.students');
+        Route::get(
+            '/subjects/{id}/students',
+            [SubjectController::class, 'students']
+        )->name('admin.subjects.students');
 
         Route::post(
             '/subjects/{id}/select-students',
@@ -191,7 +235,6 @@ Route::middleware(['admin'])
             '/subjects/{id}/total',
             [SubjectReportController::class, 'total']
         )->name('admin.subjects.total');
-
     });
 
 
@@ -201,19 +244,25 @@ Route::middleware(['admin'])
 |--------------------------------------------------------------------------
 */
 
-Route::get('/staff/login', [StaffAttendanceController::class, 'showLogin'])
-    ->name('staff.login');
+Route::get(
+    '/staff/login',
+    [StaffAttendanceController::class, 'showLogin']
+)->name('staff.login');
 
-Route::post('/staff/login', [StaffAttendanceController::class, 'login'])
-    ->name('staff.login.post');
+Route::post(
+    '/staff/login',
+    [StaffAttendanceController::class, 'login']
+)->name('staff.login.post');
 
-Route::post('/staff/logout', [StaffAttendanceController::class, 'logout'])
-    ->name('staff.logout');
+Route::post(
+    '/staff/logout',
+    [StaffAttendanceController::class, 'logout']
+)->name('staff.logout');
 
 
 /*
 |--------------------------------------------------------------------------
-| STAFF ROUTES
+| STAFF
 |--------------------------------------------------------------------------
 */
 
@@ -221,8 +270,10 @@ Route::middleware(['staff'])
     ->prefix('staff')
     ->group(function () {
 
-        Route::get('/folders', [StaffAttendanceController::class, 'index'])
-            ->name('staff.folders');
+        Route::get(
+            '/folders',
+            [StaffAttendanceController::class, 'index']
+        )->name('staff.folders');
 
         Route::get(
             '/folders/{id}/mark',
@@ -230,16 +281,32 @@ Route::middleware(['staff'])
         )->name('staff.attendance.show');
 
         Route::post(
+            '/folders/{id}/mark',
+            [StaffAttendanceController::class, 'submit']
+        )->name('staff.attendance.mark.post');
+
+        Route::post(
             '/folders/{id}/submit',
             [StaffAttendanceController::class, 'submit']
         )->name('staff.attendance.submit');
 
+        // Route for folder deletion from staff panel
+        Route::delete(
+            '/folders/{id}',
+            [StaffAttendanceController::class, 'destroy']
+        )->name('staff.folders.destroy');
+
+        // Route for staff to view attendance report directly from mark page
+        Route::get(
+            '/folders/{id}/report',
+            [ReportController::class, 'show']
+        )->name('staff.report.show');
     });
 
 
 /*
 |--------------------------------------------------------------------------
-| STUDENT ROUTES
+| STUDENT
 |--------------------------------------------------------------------------
 */
 
@@ -260,5 +327,4 @@ Route::prefix('student')
             '/folders/{id}/pdf',
             [StudentReportController::class, 'pdf']
         )->name('student.report.pdf');
-
     });

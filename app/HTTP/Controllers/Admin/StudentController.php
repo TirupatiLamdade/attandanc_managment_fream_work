@@ -66,7 +66,7 @@ class StudentController extends Controller
                 'required',
                 'string',
                 'max:255',
-                'regex:/^[A-Za-z ]+$/',
+                'regex:/^[A-Za-z]+(\s+[A-Za-z]+)*$/',
             ],
 
             'roll_number' => [
@@ -80,35 +80,44 @@ class StudentController extends Controller
                 'required',
                 'string',
                 'max:255',
-                'regex:/^[A-Za-z ]+$/',
+                'regex:/^[A-Za-z]+(\s+[A-Za-z]+)*$/',
             ],
 
             'phone' => [
                 'required',
                 'digits:10',
+                'unique:students,phone,NULL,id,folder_id,' . $folder->id,
             ],
         ], [
             'name.required' => 'Student name is required.',
-            'name.regex' => 'Student name can contain only letters and spaces.',
+            'name.regex' => 'Student name can contain only letters and proper single spaces between words.',
 
             'roll_number.required' => 'Roll number is required.',
             'roll_number.regex' => 'Roll number must contain numbers only.',
             'roll_number.unique' => 'This roll number already exists in this folder.',
 
             'branch.required' => 'Branch is required.',
-            'branch.regex' => 'Branch can contain only letters and spaces.',
+            'branch.regex' => 'Branch can contain only letters and proper single spaces between words.',
 
             'phone.required' => 'Mobile number is required.',
             'phone.digits' => 'Mobile number must be exactly 10 digits.',
+            'phone.unique' => 'This mobile number is already registered for another student in this folder.',
         ]);
+
+        $formattedName = ucwords(strtolower(preg_replace('/\s+/', ' ', trim($validated['name']))));
+        $formattedBranch = ucwords(strtolower(preg_replace('/\s+/', ' ', trim($validated['branch']))));
+
+        // Auto increment serno sequence within the specific folder
+        $maxSerno = Student::where('folder_id', $folder->id)->max('serno') ?? 0;
+        $nextSerno = $maxSerno + 1;
 
         Student::create([
             'folder_id' => $folder->id,
-            'name' => trim($validated['name']),
+            'name' => $formattedName,
             'roll_number' => $validated['roll_number'],
-            'branch' => trim($validated['branch']),
+            'branch' => $formattedBranch,
             'phone' => $validated['phone'],
-            'serno' => 1,
+            'serno' => $nextSerno,
         ]);
 
         return redirect()
@@ -139,7 +148,7 @@ class StudentController extends Controller
                 'required',
                 'string',
                 'max:255',
-                'regex:/^[A-Za-z ]+$/',
+                'regex:/^[A-Za-z]+(\s+[A-Za-z]+)*$/',
             ],
 
             'roll_number' => [
@@ -156,19 +165,40 @@ class StudentController extends Controller
                 'required',
                 'string',
                 'max:255',
-                'regex:/^[A-Za-z ]+$/',
+                'regex:/^[A-Za-z]+(\s+[A-Za-z]+)*$/',
             ],
 
             'phone' => [
                 'required',
                 'digits:10',
+                'unique:students,phone,' .
+                $student->id .
+                ',id,folder_id,' .
+                $student->folder_id,
             ],
+        ], [
+            'name.required' => 'Student name is required.',
+            'name.regex' => 'Student name can contain only letters and proper single spaces between words.',
+
+            'roll_number.required' => 'Roll number is required.',
+            'roll_number.regex' => 'Roll number must contain numbers only.',
+            'roll_number.unique' => 'This roll number already exists in this folder.',
+
+            'branch.required' => 'Branch is required.',
+            'branch.regex' => 'Branch can contain only letters and proper single spaces between words.',
+
+            'phone.required' => 'Mobile number is required.',
+            'phone.digits' => 'Mobile number must be exactly 10 digits.',
+            'phone.unique' => 'This mobile number is already registered for another student in this folder.',
         ]);
 
+        $formattedName = ucwords(strtolower(preg_replace('/\s+/', ' ', trim($validated['name']))));
+        $formattedBranch = ucwords(strtolower(preg_replace('/\s+/', ' ', trim($validated['branch']))));
+
         $student->update([
-            'name' => trim($validated['name']),
+            'name' => $formattedName,
             'roll_number' => $validated['roll_number'],
-            'branch' => trim($validated['branch']),
+            'branch' => $formattedBranch,
             'phone' => $validated['phone'],
         ]);
 

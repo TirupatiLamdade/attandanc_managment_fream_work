@@ -1,43 +1,43 @@
-@extends('layouts.app')
 
-@section('title', 'Mark Attendance - ' . $folder->name)
 
-@section('content')
+<?php $__env->startSection('title', 'Mark Attendance - ' . $folder->name); ?>
+
+<?php $__env->startSection('content'); ?>
 
 <div class="max-w-[92rem] mx-auto px-4 sm:px-6 lg:px-8 py-8 transition-transform duration-200" id="zoomable-container">
 
-    {{-- ===================================================== --}}
-    {{-- FLOATING TOP NOTIFICATION MESSAGE --}}
-    {{-- ===================================================== --}}
-    @if(session('success'))
+    
+    
+    
+    <?php if(session('success')): ?>
         <div
             id="flashAlert"
             class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#10B981]/95 border border-[#10B981] text-white px-6 sm:px-8 py-4 rounded-2xl shadow-2xl text-sm sm:text-base flex items-center gap-3 transition-all duration-500 max-w-[90vw] cursor-pointer backdrop-blur-md"
         >
             <span class="w-3 h-3 rounded-full bg-white animate-pulse shrink-0"></span>
-            <span class="font-semibold">{{ session('success') }}</span>
+            <span class="font-semibold"><?php echo e(session('success')); ?></span>
         </div>
-    @endif
+    <?php endif; ?>
 
-    @if(session('error'))
+    <?php if(session('error')): ?>
         <div
             id="flashAlert"
             class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#EF4444]/95 border border-[#EF4444] text-white px-6 sm:px-8 py-4 rounded-2xl shadow-2xl text-sm sm:text-base flex items-center gap-3 transition-all duration-500 max-w-[90vw] cursor-pointer backdrop-blur-md"
         >
             <span class="w-3 h-3 rounded-full bg-white animate-pulse shrink-0"></span>
-            <span class="font-semibold">{{ session('error') }}</span>
+            <span class="font-semibold"><?php echo e(session('error')); ?></span>
         </div>
-    @endif
+    <?php endif; ?>
 
-    {{-- ===================================================== --}}
-    {{-- HEADER WITH TITLE, BACK BUTTON, & ZOOM CONTROLS --}}
-    {{-- ===================================================== --}}
+    
+    
+    
     <div class="mb-8">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-surface border border-border p-8 sm:p-10 rounded-3xl shadow-darkCard">
             <div class="space-y-3">
                 <div class="flex items-center gap-3 flex-wrap">
-                    {{-- Back to Folders Button with Thin Border --}}
-                    <a href="{{ route('staff.folders') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface border border-border text-primary hover:border-accent text-sm font-bold transition shadow-sm">
+                    
+                    <a href="<?php echo e(route('staff.folders')); ?>" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-surface border border-border text-primary hover:border-accent text-sm font-bold transition shadow-sm">
                         &larr; Back to Folders
                     </a>
                 </div>
@@ -45,20 +45,21 @@
                 <h1 class="text-4xl sm:text-5xl font-extrabold text-primary tracking-tight break-words flex items-baseline gap-3 pt-1">
                     <span class="w-4 h-4 rounded-full bg-accent inline-block shrink-0"></span>
                     <span>
-                        {{ $folder->name }}
-                        @if(!empty($folder->branch))
-                            <span class="text-secondary font-medium text-xl sm:text-2xl">, Branch :- {{ $folder->branch }}</span>
-                        @endif
+                        <?php echo e($folder->name); ?>
+
+                        <?php if(!empty($folder->branch)): ?>
+                            <span class="text-secondary font-medium text-xl sm:text-2xl">, Branch :- <?php echo e($folder->branch); ?></span>
+                        <?php endif; ?>
                         <span class="text-secondary font-medium text-2xl">/ Mark Attendance</span>
                     </span>
                 </h1>
 
                 <p class="text-secondary text-base sm:text-lg">
-                    Date: {{ \Carbon\Carbon::today()->format('d M, Y') }} • Select attendance status for each student.
+                    Date: <?php echo e(\Carbon\Carbon::today()->format('d M, Y')); ?> • Select attendance status for each student.
                 </p>
             </div>
 
-            {{-- Zoom Controls --}}
+            
             <div class="flex items-center gap-2 bg-bg p-2 rounded-2xl border border-border self-start md:self-auto shrink-0">
                 <span id="zoomLevelText" class="text-xs font-mono font-bold text-primary px-2">100%</span>
                 <button type="button" onclick="changeZoom(-0.1)" class="w-9 h-9 flex items-center justify-center rounded-xl bg-surface border border-border text-primary font-bold hover:border-accent transition">-</button>
@@ -68,9 +69,9 @@
         </div>
     </div>
 
-    {{-- ===================================================== --}}
-    {{-- SEARCH BAR --}}
-    {{-- ===================================================== --}}
+    
+    
+    
     <div class="mb-8 flex justify-start">
         <div class="relative w-full max-w-xl">
             <span class="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none text-secondary">
@@ -86,10 +87,10 @@
         </div>
     </div>
 
-    {{-- ===================================================== --}}
-    {{-- QUICK STATS SUMMARY CARDS --}}
-    {{-- ===================================================== --}}
-    @php
+    
+    
+    
+    <?php
         $totalStudents = $folder->students->count();
         $presentCount = 0;
         $absentCount = 0;
@@ -102,30 +103,30 @@
                 $absentCount++;
             }
         }
-    @endphp
+    ?>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
         <div class="bg-surface border border-border p-6 rounded-3xl text-center shadow-darkCard">
-            <div class="text-4xl font-extrabold text-primary tracking-tight mt-1">{{ $totalStudents }}</div>
+            <div class="text-4xl font-extrabold text-primary tracking-tight mt-1"><?php echo e($totalStudents); ?></div>
             <div class="text-secondary text-sm font-semibold uppercase tracking-wider mt-2">Total Students</div>
         </div>
         <div class="bg-surface border border-success/40 p-6 rounded-3xl text-center shadow-darkCard">
-            <div class="text-4xl font-extrabold text-success tracking-tight mt-1" id="presentCountDisplay">{{ $presentCount }}</div>
+            <div class="text-4xl font-extrabold text-success tracking-tight mt-1" id="presentCountDisplay"><?php echo e($presentCount); ?></div>
             <div class="text-success text-sm font-semibold uppercase tracking-wider mt-2">Present</div>
         </div>
         <div class="bg-surface border border-danger/40 p-6 rounded-3xl text-center shadow-darkCard">
-            <div class="text-4xl font-extrabold text-danger tracking-tight mt-1" id="absentCountDisplay">{{ $absentCount }}</div>
+            <div class="text-4xl font-extrabold text-danger tracking-tight mt-1" id="absentCountDisplay"><?php echo e($absentCount); ?></div>
             <div class="text-danger text-sm font-semibold uppercase tracking-wider mt-2">Absent</div>
         </div>
     </div>
 
-    {{-- ===================================================== --}}
-    {{-- ATTENDANCE TABLE FORM --}}
-    {{-- ===================================================== --}}
+    
+    
+    
     <div class="bg-surface border border-border rounded-3xl overflow-hidden shadow-darkCard mb-10">
-        <form method="POST" action="{{ route('staff.attendance.submit', $folder->id) }}" id="attendanceForm" onsubmit="return validateAttendanceSubmit(event)">
-            @csrf
-            <input type="hidden" name="is_subject" value="{{ $isSubject ? '1' : '0' }}">
+        <form method="POST" action="<?php echo e(route('staff.attendance.submit', $folder->id)); ?>" id="attendanceForm" onsubmit="return validateAttendanceSubmit(event)">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="is_subject" value="<?php echo e($isSubject ? '1' : '0'); ?>">
 
             <div class="p-8 border-b border-border flex items-center justify-between">
                 <div>
@@ -147,54 +148,55 @@
                         </tr>
                     </thead>
                     <tbody id="studentTableBody">
-                        @forelse($folder->students as $student)
-                            @php
+                        <?php $__empty_1 = true; $__currentLoopData = $folder->students; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $student): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                            <?php
                                 $currentStatus = $attendances[$student->id] ?? null;
-                            @endphp
+                            ?>
                             <tr class="border-b border-border hover:bg-surfaceHover transition-colors student-row"
-                                data-search="{{ strtolower(($student->name ?? '') . ' ' . ($student->roll_number ?? '') . ' ' . ($student->branch ?? '') . ' ' . ($student->phone ?? '')) }}"
+                                data-search="<?php echo e(strtolower(($student->name ?? '') . ' ' . ($student->roll_number ?? '') . ' ' . ($student->branch ?? '') . ' ' . ($student->phone ?? ''))); ?>"
                             >
                                 <td class="p-6 font-semibold text-secondary">
-                                    <span class="bg-bg px-3 py-1 rounded-lg border border-border text-xs font-mono">{{ $student->serno }}</span>
+                                    <span class="bg-bg px-3 py-1 rounded-lg border border-border text-xs font-mono"><?php echo e($student->serno); ?></span>
                                 </td>
                                 <td class="p-6">
-                                    <div class="font-bold text-primary text-lg">{{ $student->name }}</div>
-                                    @if($student->created_at)
+                                    <div class="font-bold text-primary text-lg"><?php echo e($student->name); ?></div>
+                                    <?php if($student->created_at): ?>
                                         <span class="text-secondary text-xs mt-1 block">
-                                            Added: {{ \Carbon\Carbon::parse($student->created_at)->format('d M Y') }}
+                                            Added: <?php echo e(\Carbon\Carbon::parse($student->created_at)->format('d M Y')); ?>
+
                                         </span>
-                                    @endif
+                                    <?php endif; ?>
                                 </td>
-                                <td class="p-6 font-mono font-semibold text-primary">{{ $student->roll_number }}</td>
-                                <td class="p-6 text-secondary">{{ $student->branch }}</td>
-                                <td class="p-6 font-mono text-secondary">{{ $student->phone }}</td>
+                                <td class="p-6 font-mono font-semibold text-primary"><?php echo e($student->roll_number); ?></td>
+                                <td class="p-6 text-secondary"><?php echo e($student->branch); ?></td>
+                                <td class="p-6 font-mono text-secondary"><?php echo e($student->phone); ?></td>
                                 <td class="p-6 text-center">
-                                    {{-- Display Mode (If already saved/marked): Shows Status Badge and Edit Button --}}
-                                    <div class="flex items-center justify-center gap-3 {{ is_null($currentStatus) ? 'hidden' : '' }}" id="display-box-{{ $student->id }}">
-                                        @if($currentStatus === 'present')
+                                    
+                                    <div class="flex items-center justify-center gap-3 <?php echo e(is_null($currentStatus) ? 'hidden' : ''); ?>" id="display-box-<?php echo e($student->id); ?>">
+                                        <?php if($currentStatus === 'present'): ?>
                                             <span class="px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 bg-success/10 border border-success/40 text-success">
                                                 ✓ Present
                                             </span>
-                                        @else
+                                        <?php else: ?>
                                             <span class="px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 bg-danger/10 border border-danger/40 text-danger">
                                                 ✕ Absent
                                             </span>
-                                        @endif
+                                        <?php endif; ?>
                                         <button
                                             type="button"
-                                            onclick="enableEdit('{{ $student->id }}')"
+                                            onclick="enableEdit('<?php echo e($student->id); ?>')"
                                             class="px-3 py-1.5 rounded-lg text-xs font-bold bg-accent/20 border border-accent/40 text-accent hover:bg-accent/30 transition-all cursor-pointer shadow-sm"
                                         >
                                             Edit
                                         </button>
                                     </div>
 
-                                    {{-- Unmarked Mode (No attendance marked yet): Shows ONLY Present and Absent buttons --}}
-                                    <div class="flex items-center justify-center gap-2 {{ !is_null($currentStatus) ? 'hidden' : '' }}" id="edit-box-{{ $student->id }}">
+                                    
+                                    <div class="flex items-center justify-center gap-2 <?php echo e(!is_null($currentStatus) ? 'hidden' : ''); ?>" id="edit-box-<?php echo e($student->id); ?>">
                                         <button
                                             type="button"
-                                            class="px-3 py-1.5 rounded-xl text-xs font-bold border border-border transition-all status-btn present {{ $currentStatus === 'present' ? 'active-present' : 'bg-bg text-secondary hover:border-success hover:text-success' }}"
-                                            data-student="{{ $student->id }}"
+                                            class="px-3 py-1.5 rounded-xl text-xs font-bold border border-border transition-all status-btn present <?php echo e($currentStatus === 'present' ? 'active-present' : 'bg-bg text-secondary hover:border-success hover:text-success'); ?>"
+                                            data-student="<?php echo e($student->id); ?>"
                                             data-status="present"
                                             onclick="setAttendanceDirect(this)"
                                         >
@@ -202,8 +204,8 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="px-3 py-1.5 rounded-xl text-xs font-bold border border-border transition-all status-btn absent {{ $currentStatus === 'absent' ? 'active-absent' : 'bg-bg text-secondary hover:border-danger hover:text-danger' }}"
-                                            data-student="{{ $student->id }}"
+                                            class="px-3 py-1.5 rounded-xl text-xs font-bold border border-border transition-all status-btn absent <?php echo e($currentStatus === 'absent' ? 'active-absent' : 'bg-bg text-secondary hover:border-danger hover:text-danger'); ?>"
+                                            data-student="<?php echo e($student->id); ?>"
                                             data-status="absent"
                                             onclick="setAttendanceDirect(this)"
                                         >
@@ -211,12 +213,12 @@
                                         </button>
                                     </div>
 
-                                    {{-- Edit Mode (Triggered when Edit is clicked): Shows Present, Absent, AND Save button --}}
-                                    <div class="flex items-center justify-center gap-2 hidden" id="edit-save-box-{{ $student->id }}">
+                                    
+                                    <div class="flex items-center justify-center gap-2 hidden" id="edit-save-box-<?php echo e($student->id); ?>">
                                         <button
                                             type="button"
-                                            class="px-3 py-1.5 rounded-xl text-xs font-bold border border-border transition-all status-btn present {{ $currentStatus === 'present' ? 'active-present' : 'bg-bg text-secondary hover:border-success hover:text-success' }}"
-                                            data-student="{{ $student->id }}"
+                                            class="px-3 py-1.5 rounded-xl text-xs font-bold border border-border transition-all status-btn present <?php echo e($currentStatus === 'present' ? 'active-present' : 'bg-bg text-secondary hover:border-success hover:text-success'); ?>"
+                                            data-student="<?php echo e($student->id); ?>"
                                             data-status="present"
                                             onclick="setAttendanceDirect(this)"
                                         >
@@ -224,8 +226,8 @@
                                         </button>
                                         <button
                                             type="button"
-                                            class="px-3 py-1.5 rounded-xl text-xs font-bold border border-border transition-all status-btn absent {{ $currentStatus === 'absent' ? 'active-absent' : 'bg-bg text-secondary hover:border-danger hover:text-danger' }}"
-                                            data-student="{{ $student->id }}"
+                                            class="px-3 py-1.5 rounded-xl text-xs font-bold border border-border transition-all status-btn absent <?php echo e($currentStatus === 'absent' ? 'active-absent' : 'bg-bg text-secondary hover:border-danger hover:text-danger'); ?>"
+                                            data-student="<?php echo e($student->id); ?>"
                                             data-status="absent"
                                             onclick="setAttendanceDirect(this)"
                                         >
@@ -233,28 +235,28 @@
                                         </button>
                                         <button
                                             type="button"
-                                            onclick="saveSingleStudent('{{ $student->id }}')"
+                                            onclick="saveSingleStudent('<?php echo e($student->id); ?>')"
                                             class="px-3 py-1.5 rounded-xl text-xs font-bold bg-success text-white hover:bg-success/90 transition-all cursor-pointer shadow-md"
                                         >
                                             Save
                                         </button>
                                     </div>
 
-                                    <input type="hidden" name="student_{{ $student->id }}" id="status-{{ $student->id }}" value="{{ $currentStatus }}" class="attendance-input" data-name="{{ $student->name }}" data-roll="{{ $student->roll_number }}">
+                                    <input type="hidden" name="student_<?php echo e($student->id); ?>" id="status-<?php echo e($student->id); ?>" value="<?php echo e($currentStatus); ?>" class="attendance-input" data-name="<?php echo e($student->name); ?>" data-roll="<?php echo e($student->roll_number); ?>">
                                 </td>
                             </tr>
-                        @empty
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                             <tr>
                                 <td colspan="6" class="p-20 text-center text-secondary">No students found in this folder.</td>
                             </tr>
-                        @endforelse
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
 
-            @if($folder->students->count() > 0)
+            <?php if($folder->students->count() > 0): ?>
                 <div class="p-8 border-t border-border bg-surface flex justify-end">
-                    {{-- Main Save Attendance Button with Thin Border --}}
+                    
                     <button
                         type="submit"
                         class="bg-accent hover:bg-accentHover text-white px-8 py-4 rounded-2xl text-base font-semibold border border-accent/60 transition-all cursor-pointer shadow-md"
@@ -262,7 +264,7 @@
                         ✓ Save Attendance
                     </button>
                 </div>
-            @endif
+            <?php endif; ?>
         </form>
     </div>
 </div>
@@ -432,18 +434,18 @@
 
         const form = document.createElement('form');
         form.method = 'POST';
-        form.action = "{{ route('staff.attendance.submit', $folder->id) }}";
+        form.action = "<?php echo e(route('staff.attendance.submit', $folder->id)); ?>";
 
         const csrf = document.createElement('input');
         csrf.type = 'hidden';
         csrf.name = '_token';
-        csrf.value = "{{ csrf_token() }}";
+        csrf.value = "<?php echo e(csrf_token()); ?>";
         form.appendChild(csrf);
 
         const subjectField = document.createElement('input');
         subjectField.type = 'hidden';
         subjectField.name = 'is_subject';
-        subjectField.value = "{{ $isSubject ? '1' : '0' }}";
+        subjectField.value = "<?php echo e($isSubject ? '1' : '0'); ?>";
         form.appendChild(subjectField);
 
         const statusField = document.createElement('input');
@@ -456,4 +458,5 @@
         form.submit();
     }
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\laragon\www\Attandance_Fremwork_2026\resources\Views/staff/attendance.blade.php ENDPATH**/ ?>

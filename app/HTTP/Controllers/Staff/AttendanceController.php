@@ -101,6 +101,20 @@ class AttendanceController extends Controller
             }
         }
 
-        return redirect()->route('staff.folders')->with('success', 'Attendance submitted');
+        return back()->with('success', 'Attendance saved and updated successfully.');
+    }
+
+    public function destroy(Request $request, $id)
+    {
+        $folder = Folder::find($id);
+
+        if (!$folder) {
+            $folder = SubjectFolder::findOrFail($id);
+            $folder->delete();
+        } else {
+            $folder->delete();
+        }
+
+        return redirect()->route('staff.folders')->with('success', 'Folder deleted successfully.');
     }
 }

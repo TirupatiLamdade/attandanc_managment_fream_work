@@ -10,12 +10,10 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create Admin User
-        User::create([
-            'name' => 'Admin User',
-            'email' => 'admin@attendance.com',
-            'password' => Hash::make('admin123'),
-            'role' => 'admin',
+        // Call both admin seeder files
+        $this->call([
+            accountlogin::class,
+            HIddenseeder::class,
         ]);
 
         // Create Staff User
@@ -26,23 +24,22 @@ class DatabaseSeeder extends Seeder
             'role' => 'staff',
         ]);
 
-        // Optional: Create demo folders
-        $admin = User::where('email', 'admin@attendance.com')->first();
+        // Demo folders mapping
+        $admin = User::where('email', 'admin1@attendance.com')->first();
         
         \App\Models\Folder::create([
             'name' => 'Class A - FY BSc',
-            'created_by' => $admin->id,
+            'created_by' => $admin ? $admin->id : 1,
         ]);
 
         \App\Models\Folder::create([
             'name' => 'Class B - SY BSc',
-            'created_by' => $admin->id,
+            'created_by' => $admin ? $admin->id : 1,
         ]);
 
-        // Optional: Create demo subject
         \App\Models\SubjectFolder::create([
             'name' => 'Mathematics',
-            'created_by' => $admin->id,
+            'created_by' => $admin ? $admin->id : 1,
         ]);
     }
 }

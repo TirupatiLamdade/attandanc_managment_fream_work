@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Attendance Report - {{ $folder->name }}</title>
+    <title>Attendance Report - <?php echo e($folder->name); ?></title>
     <style>
         @page {
             margin: 20px 25px;
@@ -191,7 +191,7 @@
 
 <body>
 
-@php
+<?php
     $pdfType = $type ?? request('type', 'daily');
     $pdfDate = $date ?? request('date');
     $pdfMonth = $month ?? request('month');
@@ -207,85 +207,85 @@
         $logoData = file_get_contents($logoFile);
         $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
     }
-@endphp
+?>
 
-{{-- ========================================================= --}}
-{{-- COLLEGE HEADER WITH LOGO & PROPER BRANDING --}}
-{{-- ========================================================= --}}
+
+
+
 <div class="college-header">
-    @if($logoBase64)
-        <img src="{{ $logoBase64 }}" class="college-logo" alt="Logo">
-    @endif
+    <?php if($logoBase64): ?>
+        <img src="<?php echo e($logoBase64); ?>" class="college-logo" alt="Logo">
+    <?php endif; ?>
     <h2 class="college-title">Matoshri Pratishthan's</h2>
     <p class="college-subtitle">Vishwabharti Polytechnic Institute</p>
 </div>
 
-{{-- ========================================================= --}}
-{{-- REPORT TITLE & FOLDER NAME --}}
-{{-- ========================================================= --}}
+
+
+
 <div class="report-title-box">
     <h1>Attendance Report</h1>
-    <div class="folder-highlight">Folder: {{ $folder->name }}</div>
+    <div class="folder-highlight">Folder: <?php echo e($folder->name); ?></div>
 </div>
 
-{{-- ========================================================= --}}
-{{-- REPORT INFORMATION PANEL --}}
-{{-- ========================================================= --}}
+
+
+
 <div class="report-info">
     <table>
         <tr>
             <td class="label">Report Type</td>
             <td>
-                @if($pdfType === 'daily') Daily Report
-                @elseif($pdfType === 'monthly') Monthly Report
-                @elseif($pdfType === 'all') All Days Report (From Student Joining Date)
-                @else Custom Range Report
-                @endif
+                <?php if($pdfType === 'daily'): ?> Daily Report
+                <?php elseif($pdfType === 'monthly'): ?> Monthly Report
+                <?php elseif($pdfType === 'all'): ?> All Days Report (From Student Joining Date)
+                <?php else: ?> Custom Range Report
+                <?php endif; ?>
             </td>
         </tr>
 
-        @if($pdfType === 'daily')
+        <?php if($pdfType === 'daily'): ?>
             <tr>
                 <td class="label">Attendance Date</td>
-                <td>{{ $pdfDate ?? '-' }}</td>
+                <td><?php echo e($pdfDate ?? '-'); ?></td>
             </tr>
-        @elseif($pdfType === 'monthly')
+        <?php elseif($pdfType === 'monthly'): ?>
             <tr>
                 <td class="label">Selected Month</td>
-                <td>{{ $pdfMonth ?? '-' }}</td>
+                <td><?php echo e($pdfMonth ?? '-'); ?></td>
             </tr>
-        @elseif($pdfType === 'custom')
+        <?php elseif($pdfType === 'custom'): ?>
             <tr>
                 <td class="label">From Date</td>
-                <td>{{ $pdfStart ?? '-' }}</td>
+                <td><?php echo e($pdfStart ?? '-'); ?></td>
             </tr>
             <tr>
                 <td class="label">To Date</td>
-                <td>{{ $pdfEnd ?? '-' }}</td>
+                <td><?php echo e($pdfEnd ?? '-'); ?></td>
             </tr>
-        @elseif($pdfType === 'all')
+        <?php elseif($pdfType === 'all'): ?>
             <tr>
                 <td class="label">Coverage Range</td>
                 <td>Aggregated records from individual student joining dates to current date</td>
             </tr>
-        @endif
+        <?php endif; ?>
     </table>
 </div>
 
-{{-- ========================================================= --}}
-{{-- NO ATTENDANCE CHECK --}}
-{{-- ========================================================= --}}
-@if(!$pdfHasAttendance || count($pdfStudents) === 0)
+
+
+
+<?php if(!$pdfHasAttendance || count($pdfStudents) === 0): ?>
     <div class="no-attendance">
         ⚠️ No attendance records found for this period.<br>
         <span style="font-size: 9px; font-weight: normal; color: #475569;">PDF generation is unavailable because no matching attendance logs exist.</span>
     </div>
-@else
+<?php else: ?>
 
-{{-- ========================================================= --}}
-{{-- DAILY REPORT PDF LAYOUT --}}
-{{-- ========================================================= --}}
-@if($pdfType === 'daily')
+
+
+
+<?php if($pdfType === 'daily'): ?>
     <div class="summary">
         <table>
             <tr>
@@ -294,9 +294,9 @@
                 <td class="summary-title">Absent</td>
             </tr>
             <tr>
-                <td class="summary-value">{{ count($pdfStudents) }}</td>
-                <td class="summary-value" style="color: #15803d;">{{ collect($pdfStudents)->where('daily_status', 'Present')->count() }}</td>
-                <td class="summary-value" style="color: #b91c1c;">{{ collect($pdfStudents)->where('daily_status', 'Absent')->count() }}</td>
+                <td class="summary-value"><?php echo e(count($pdfStudents)); ?></td>
+                <td class="summary-value" style="color: #15803d;"><?php echo e(collect($pdfStudents)->where('daily_status', 'Present')->count()); ?></td>
+                <td class="summary-value" style="color: #b91c1c;"><?php echo e(collect($pdfStudents)->where('daily_status', 'Absent')->count()); ?></td>
             </tr>
         </table>
     </div>
@@ -313,38 +313,38 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($pdfStudents as $data)
+            <?php $__currentLoopData = $pdfStudents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $data): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <tr>
-                    <td class="center">{{ $data['serno'] }}</td>
-                    <td><strong>{{ $data['name'] }}</strong></td>
-                    <td class="center">{{ $data['roll'] }}</td>
-                    <td>{{ $data['branch'] }}</td>
-                    <td class="center">{{ $data['phone'] ?: '-' }}</td>
+                    <td class="center"><?php echo e($data['serno']); ?></td>
+                    <td><strong><?php echo e($data['name']); ?></strong></td>
+                    <td class="center"><?php echo e($data['roll']); ?></td>
+                    <td><?php echo e($data['branch']); ?></td>
+                    <td class="center"><?php echo e($data['phone'] ?: '-'); ?></td>
                     <td class="center">
-                        @if(strtolower($data['daily_status'] ?? '') === 'present')
+                        <?php if(strtolower($data['daily_status'] ?? '') === 'present'): ?>
                             <span class="present">Present</span>
-                        @elseif(strtolower($data['daily_status'] ?? '') === 'absent')
+                        <?php elseif(strtolower($data['daily_status'] ?? '') === 'absent'): ?>
                             <span class="absent">Absent</span>
-                        @else
+                        <?php else: ?>
                             -
-                        @endif
+                        <?php endif; ?>
                     </td>
                 </tr>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tbody>
     </table>
 
-{{-- ========================================================= --}}
-{{-- MONTHLY / CUSTOM / ALL REPORT PDF LAYOUT --}}
-{{-- ========================================================= --}}
-@else
-    @php
+
+
+
+<?php else: ?>
+    <?php
         $totalStudents = count($pdfStudents);
         $totalPresent = collect($pdfStudents)->sum('present');
         $totalAbsent = collect($pdfStudents)->sum('absent');
         $totalDaysSum = collect($pdfStudents)->sum('total_days');
         $averagePercentage = $totalStudents > 0 ? round(collect($pdfStudents)->avg('percentage'), 2) : 0;
-    @endphp
+    ?>
 
     <div class="summary">
         <table>
@@ -355,10 +355,10 @@
                 <td class="summary-title">Avg. Percentage</td>
             </tr>
             <tr>
-                <td class="summary-value">{{ $totalStudents }}</td>
-                <td class="summary-value" style="color: #15803d;">{{ $totalPresent }}</td>
-                <td class="summary-value" style="color: #b91c1c;">{{ $totalAbsent }}</td>
-                <td class="summary-value" style="color: #2563eb;">{{ $averagePercentage }}%</td>
+                <td class="summary-value"><?php echo e($totalStudents); ?></td>
+                <td class="summary-value" style="color: #15803d;"><?php echo e($totalPresent); ?></td>
+                <td class="summary-value" style="color: #b91c1c;"><?php echo e($totalAbsent); ?></td>
+                <td class="summary-value" style="color: #2563eb;"><?php echo e($averagePercentage); ?>%</td>
             </tr>
         </table>
     </div>
@@ -378,31 +378,31 @@
             </tr>
         </thead>
         <tbody>
-            @foreach($pdfStudents as $data)
+            <?php $__currentLoopData = $pdfStudents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $data): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <tr>
-                    <td class="center">{{ $data['serno'] }}</td>
-                    <td><strong>{{ $data['name'] }}</strong></td>
-                    <td class="center">{{ $data['roll'] }}</td>
-                    <td>{{ $data['branch'] }}</td>
-                    <td class="center">{{ $data['phone'] ?: '-' }}</td>
-                    <td class="center">{{ $data['total_days'] }}</td>
-                    <td class="center present">{{ $data['present'] }}</td>
-                    <td class="center absent">{{ $data['absent'] }}</td>
-                    <td class="center"><strong>{{ $data['percentage'] }}%</strong></td>
+                    <td class="center"><?php echo e($data['serno']); ?></td>
+                    <td><strong><?php echo e($data['name']); ?></strong></td>
+                    <td class="center"><?php echo e($data['roll']); ?></td>
+                    <td><?php echo e($data['branch']); ?></td>
+                    <td class="center"><?php echo e($data['phone'] ?: '-'); ?></td>
+                    <td class="center"><?php echo e($data['total_days']); ?></td>
+                    <td class="center present"><?php echo e($data['present']); ?></td>
+                    <td class="center absent"><?php echo e($data['absent']); ?></td>
+                    <td class="center"><strong><?php echo e($data['percentage']); ?>%</strong></td>
                 </tr>
-            @endforeach
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </tbody>
     </table>
-@endif
+<?php endif; ?>
 
-@endif
+<?php endif; ?>
 
-{{-- ========================================================= --}}
-{{-- FOOTER --}}
-{{-- ========================================================= --}}
+
+
+
 <div class="footer">
     Matoshri Pratishthan's Vishwabharti Polytechnic Institute &bull; Generated by Attendance Management System (AMS 2026)
 </div>
 
 </body>
-</html>
+</html><?php /**PATH C:\laragon\www\Attandance_Fremwork_2026\resources\Views/admin/folders/pdf.blade.php ENDPATH**/ ?>

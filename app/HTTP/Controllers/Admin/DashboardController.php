@@ -7,15 +7,20 @@ use App\Models\Folder;
 use App\Models\SubjectFolder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class DashboardController extends Controller
 {
+    /**
+     * Show the admin login view.
+     */
     public function showLogin()
     {
         return view('admin.login');
     }
 
+    /**
+     * Handle the admin authentication request.
+     */
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -27,6 +32,7 @@ class DashboardController extends Controller
             if (Auth::user()->isAdmin()) {
                 return redirect()->route('admin.dashboard');
             }
+            
             Auth::logout();
             return back()->withErrors(['email' => 'Not authorized as admin']);
         }
@@ -34,12 +40,18 @@ class DashboardController extends Controller
         return back()->withErrors(['email' => 'Invalid credentials']);
     }
 
+    /**
+     * Log the admin out of the application.
+     */
     public function logout()
     {
         Auth::logout();
         return redirect()->route('landing');
     }
 
+    /**
+     * Display the admin dashboard overview.
+     */
     public function index()
     {
         $folders = Folder::where('created_by', Auth::id())->latest()->get();

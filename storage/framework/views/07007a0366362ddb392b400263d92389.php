@@ -1,30 +1,30 @@
-@extends('layouts.app')
-@section('title', 'Admin Login')
-@section('content')
+
+<?php $__env->startSection('title', 'Staff Login'); ?>
+<?php $__env->startSection('content'); ?>
 <div class="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
     <div class="bg-surface border border-border rounded-3xl p-8 sm:p-10 w-full max-w-md shadow-darkCard relative overflow-hidden">
         
-        {{-- Decorative Glow Background Elements --}}
+        
         <div class="absolute -top-24 -right-24 w-48 h-48 bg-accent/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="text-center mb-8 relative z-10">
             <div class="w-16 h-16 bg-accent/10 border border-accent/30 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-sm">
-                🔐
+                👨‍🏫
             </div>
-            <h2 class="text-3xl font-extrabold text-textPrimary tracking-tight">Admin Login</h2>
+            <h2 class="text-3xl font-extrabold text-textPrimary tracking-tight">Staff Login</h2>
             <p class="text-secondary text-sm mt-2"></p>
         </div>
 
-        @if($errors->any())
+        <?php if($errors->any()): ?>
             <div class="bg-red-950/90 border border-red-500 text-red-200 px-4 py-3 rounded-2xl mb-6 text-sm flex items-center gap-3 shadow-lg relative z-10">
                 <span class="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse shrink-0"></span>
-                <span>{{ $errors->first() }}</span>
+                <span><?php echo e($errors->first()); ?></span>
             </div>
-        @endif
+        <?php endif; ?>
 
-        <form method="POST" action="{{ route('admin.login.post') }}" class="space-y-6 relative z-10">
-            @csrf
+        <form method="POST" action="<?php echo e(route('staff.login.post')); ?>" class="space-y-6 relative z-10">
+            <?php echo csrf_field(); ?>
             <div>
                 <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-2">Email Address</label>
                 <div class="relative">
@@ -32,8 +32,8 @@
                     <input 
                         type="email" 
                         name="email" 
-                        value="{{ old('email') }}" 
-                        placeholder="admin@attendance.com"
+                        value="<?php echo e(old('email')); ?>" 
+                        placeholder="staff@attendance.com"
                         class="w-full bg-card border border-border rounded-2xl pl-11 pr-4 py-3.5 text-sm text-textPrimary focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-all shadow-inner" 
                         required
                         autocomplete="email"
@@ -54,7 +54,7 @@
                         required
                         autocomplete="current-password"
                     >
-                    {{-- Eye Icon Toggle Button --}}
+                    
                     <button
                         type="button"
                         onclick="togglePasswordVisibility()"
@@ -76,7 +76,7 @@
         </form>
 
         <div class="mt-8 text-center relative z-10 pt-6 border-t border-border">
-            <a href="{{ route('landing') }}" class="text-secondary text-xs font-bold hover:text-accent transition-colors inline-flex items-center gap-1.5">
+            <a href="<?php echo e(route('landing')); ?>" class="text-secondary text-xs font-bold hover:text-accent transition-colors inline-flex items-center gap-1.5">
                 &larr; Back to Home
             </a>
         </div>
@@ -98,4 +98,5 @@
         }
     }
 </script>
-@endsection
+<?php $__env->stopSection(); ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\laragon\www\Attandance_Fremwork_2026\resources\Views/staff/login.blade.php ENDPATH**/ ?>

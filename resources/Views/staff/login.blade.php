@@ -1,27 +1,101 @@
 @extends('layouts.app')
 @section('title', 'Staff Login')
 @section('content')
-<div class="min-h-screen flex items-center justify-center">
-    <div class="bg-surface border border-border rounded-xl p-8 w-full max-w-md glow-accent">
-        <h2 class="text-2xl font-bold mb-6 text-center">Staff Login</h2>
+<div class="min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div class="bg-surface border border-border rounded-3xl p-8 sm:p-10 w-full max-w-md shadow-darkCard relative overflow-hidden">
+        
+        {{-- Decorative Glow Background Elements --}}
+        <div class="absolute -top-24 -right-24 w-48 h-48 bg-accent/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="text-center mb-8 relative z-10">
+            <div class="w-16 h-16 bg-accent/10 border border-accent/30 rounded-2xl mx-auto flex items-center justify-center text-3xl mb-4 shadow-sm">
+                👨‍🏫
+            </div>
+            <h2 class="text-3xl font-extrabold text-textPrimary tracking-tight">Staff Login</h2>
+            <p class="text-secondary text-sm mt-2"></p>
+        </div>
+
         @if($errors->any())
-            <div class="bg-danger/10 border border-danger text-danger px-4 py-2 rounded mb-4">{{ $errors->first() }}</div>
+            <div class="bg-red-950/90 border border-red-500 text-red-200 px-4 py-3 rounded-2xl mb-6 text-sm flex items-center gap-3 shadow-lg relative z-10">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-400 animate-pulse shrink-0"></span>
+                <span>{{ $errors->first() }}</span>
+            </div>
         @endif
-        <form method="POST" action="{{ route('staff.login.post') }}">
+
+        <form method="POST" action="{{ route('staff.login.post') }}" class="space-y-6 relative z-10">
             @csrf
-            <div class="mb-4">
-                <label class="block text-secondary text-sm mb-2">Email</label>
-                <input type="email" name="email" value="{{ old('email') }}" class="w-full border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-accent focus:border-accent outline-none" required>
+            <div>
+                <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-2">Email Address</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-textMuted pointer-events-none">✉️</span>
+                    <input 
+                        type="email" 
+                        name="email" 
+                        value="{{ old('email') }}" 
+                        placeholder="staff@attendance.com"
+                        class="w-full bg-card border border-border rounded-2xl pl-11 pr-4 py-3.5 text-sm text-textPrimary focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-all shadow-inner" 
+                        required
+                        autocomplete="email"
+                    >
+                </div>
             </div>
-            <div class="mb-6">
-                <label class="block text-secondary text-sm mb-2">Password</label>
-                <input type="password" name="password" class="w-full border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-accent focus:border-accent outline-none" required>
+
+            <div>
+                <label class="block text-xs font-bold text-secondary uppercase tracking-wider mb-2">Password</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-textMuted pointer-events-none">🔑</span>
+                    <input 
+                        type="password" 
+                        name="password" 
+                        id="passwordField"
+                        placeholder="••••••••"
+                        class="w-full bg-card border border-border rounded-2xl pl-11 pr-12 py-3.5 text-sm text-textPrimary focus:ring-2 focus:ring-accent focus:border-accent outline-none transition-all shadow-inner" 
+                        required
+                        autocomplete="current-password"
+                    >
+                    {{-- Eye Icon Toggle Button --}}
+                    <button
+                        type="button"
+                        onclick="togglePasswordVisibility()"
+                        class="absolute inset-y-0 right-0 flex items-center pr-4 text-secondary hover:text-textPrimary transition-colors cursor-pointer"
+                        title="Show/Hide Password"
+                    >
+                        <span id="eyeIcon" class="text-base">👁️‍🗨️</span>
+                    </button>
+                </div>
             </div>
-            <button type="submit" class="w-full bg-accent hover:bg-accentHover text-white font-semibold py-3 rounded-lg glow-accent transition-all">Login</button>
+
+            <button 
+                type="submit" 
+                class="w-full bg-accent hover:bg-accentHover text-white font-semibold py-4 rounded-2xl glow-accent transition-all shadow-md cursor-pointer flex items-center justify-center gap-2 text-base"
+            >
+                <span>Login</span>
+                <span>&rarr;</span>
+            </button>
         </form>
-        <div class="mt-4 text-center">
-            <a href="{{ route('landing') }}" class="text-secondary text-sm hover:text-accent">← Back to Home</a>
+
+        <div class="mt-8 text-center relative z-10 pt-6 border-t border-border">
+            <a href="{{ route('landing') }}" class="text-secondary text-xs font-bold hover:text-accent transition-colors inline-flex items-center gap-1.5">
+                &larr; Back to Home
+            </a>
         </div>
     </div>
 </div>
+
+<script>
+    // Password Show / Hide Toggle Script
+    function togglePasswordVisibility() {
+        const passwordField = document.getElementById('passwordField');
+        const eyeIcon = document.getElementById('eyeIcon');
+        
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            eyeIcon.textContent = '👁️';
+        } else {
+            passwordField.type = 'password';
+            eyeIcon.textContent = '👁️‍🗨️';
+        }
+    }
+</script>
 @endsection

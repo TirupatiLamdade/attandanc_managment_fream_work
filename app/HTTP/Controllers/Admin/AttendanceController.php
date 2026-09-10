@@ -15,7 +15,7 @@ class AttendanceController extends Controller
 {
     /*
     |--------------------------------------------------------------------------
-    | Get only logged-in admin's folder
+    | Get only logged-in admin's folder (Sorted Ascending)
     |--------------------------------------------------------------------------
     */
     private function ownedFolder($id)
@@ -23,14 +23,29 @@ class AttendanceController extends Controller
         return Folder::with([
             'students' => function ($query) {
                 $query->orderByRaw('CAST(roll_number AS UNSIGNED) ASC')
-                      ->orderBy('roll_number')
-                      ->orderBy('id');
+                    ->orderBy('roll_number', 'ASC')
+                    ->orderBy('id', 'ASC');
             }
         ])
         ->where('created_by', Auth::id())
         ->findOrFail($id);
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Get only student's own folder student
+    |--------------------------------------------------------------------------
+    */
+    private function ownedStudent($folderId, $studentId)
+    {
+        $folder = $this->ownedFolder($folderId);
+
+        $student = Student::where('id', $studentId)
+            ->where('folder_id', $folder->id)
+            ->firstOrFail();
+
+        return [$folder, $student];
+    }
 
     /*
     |--------------------------------------------------------------------------
@@ -43,11 +58,6 @@ class AttendanceController extends Controller
 
         $today = Carbon::today()->toDateString();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Selected date
-        |--------------------------------------------------------------------------
-        */
         $selectedDate = $request->get('date', $today);
 
         try {
@@ -56,40 +66,22 @@ class AttendanceController extends Controller
             $selectedDate = $today;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | Future date is not allowed
-        |--------------------------------------------------------------------------
-        */
         if ($selectedDate > $today) {
             $selectedDate = $today;
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | IMPORTANT:
-        | This creates the $students variable required by Blade.
-        |--------------------------------------------------------------------------
-        */
         $students = $folder->students;
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Earliest student added date
-        |--------------------------------------------------------------------------
-        */
         $earliestStudentDate = null;
 
         if ($students->count() > 0) {
-
             $dates = $students
                 ->filter(function ($student) {
                     return !empty($student->created_at);
                 })
                 ->map(function ($student) {
-                    return Carbon::parse($student->created_at)->startOfDay();
+                    return Carbon::parse($student->created_at)
+                        ->startOfDay();
                 });
 
             if ($dates->count() > 0) {
@@ -97,99 +89,72 @@ class AttendanceController extends Controller
             }
         }
 
+        // Auto-mark all applicable students as 'present' ONLY if it's a PAST missed date and no attendance exists yet
+        $existingCount = Attendance::where('folder_id', $folder->id)
+            ->where('date', $selectedDate)
+            ->count();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Selected date attendance
-        |--------------------------------------------------------------------------
-        */
+        if ($existingCount === 0 && $selectedDate < $today) {
+            DB::transaction(function () use ($students, $selectedDate, $folder) {
+                foreach ($students as $student) {
+                    $studentAddedDate = $student->created_at
+                        ? Carbon::parse($student->created_at)->toDateString()
+                        : null;
+
+                    if ($studentAddedDate && $selectedDate < $studentAddedDate) {
+                        continue;
+                    }
+
+                    Attendance::create([
+                        'folder_id' => $folder->id,
+                        'student_id' => $student->id,
+                        'date' => $selectedDate,
+                        'status' => 'present', // Past missed date automatically becomes Present
+                        'marked_by' => Auth::id(),
+                        'marked_at' => now(),
+                    ]);
+                }
+            });
+        }
+
         $attendances = Attendance::where('folder_id', $folder->id)
             ->where('date', $selectedDate)
             ->get()
             ->keyBy('student_id');
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Complete attendance history
-        |--------------------------------------------------------------------------
-        */
         $attendanceHistory = Attendance::where('folder_id', $folder->id)
             ->orderBy('date', 'desc')
             ->get()
             ->groupBy('student_id');
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Selected status
-        |--------------------------------------------------------------------------
-        */
         $selected_status = [];
 
         foreach ($students as $student) {
-
             if (isset($attendances[$student->id])) {
-
                 $selected_status[$student->id] =
                     $attendances[$student->id]->status;
-
             } else {
-
                 $selected_status[$student->id] = null;
             }
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Add calculated properties to each student
-        |--------------------------------------------------------------------------
-        */
         foreach ($students as $student) {
-
             if ($student->created_at) {
-
                 $student->student_added_date =
-                    Carbon::parse($student->created_at)->toDateString();
-
+                    Carbon::parse($student->created_at)
+                        ->toDateString();
             } else {
-
                 $student->student_added_date = null;
             }
 
-
-            /*
-            |--------------------------------------------------------------------------
-            | Attendance applicable only after student was added
-            |--------------------------------------------------------------------------
-            */
             if ($student->student_added_date) {
-
                 $student->attendance_applicable =
                     $selectedDate >= $student->student_added_date;
-
             } else {
-
                 $student->attendance_applicable = true;
             }
         }
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Past attendance unlock status
-        |--------------------------------------------------------------------------
-        */
-        $pastUnlocked =
-            session()->get('attendance_past_unlocked_' . $folder->id, false);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Return attendance view
-        |--------------------------------------------------------------------------
-        */
         return view(
             'admin.folders.attendance',
             compact(
@@ -199,34 +164,26 @@ class AttendanceController extends Controller
                 'selectedDate',
                 'today',
                 'earliestStudentDate',
-                'pastUnlocked',
                 'attendanceHistory',
                 'selected_status'
             )
         );
     }
 
-
     /*
     |--------------------------------------------------------------------------
-    | Submit Attendance
+    | Submit or Update Attendance
     |--------------------------------------------------------------------------
     */
     public function submit(Request $request, $id)
     {
         $folder = $this->ownedFolder($id);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Validate request
-        |--------------------------------------------------------------------------
-        */
         $validated = $request->validate([
             'date' => ['required', 'date'],
             'status' => ['nullable', 'array'],
             'status.*' => ['nullable', 'in:present,absent'],
         ]);
-
 
         $selectedDate = Carbon::parse(
             $validated['date']
@@ -234,150 +191,35 @@ class AttendanceController extends Controller
 
         $today = Carbon::today()->toDateString();
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Future date blocked
-        |--------------------------------------------------------------------------
-        */
         if ($selectedDate > $today) {
-
-            return back()
-                ->with('error', 'Future date attendance is not allowed.')
-                ->withInput();
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Past date unlock required
-        |--------------------------------------------------------------------------
-        */
-        if ($selectedDate < $today) {
-
-            $unlocked =
-                session()->get(
-                    'attendance_past_unlocked_' . $folder->id,
-                    false
-                );
-
-            if (!$unlocked) {
-
-                return back()
-                    ->with(
-                        'error',
-                        'Past attendance is locked. Unlock it first.'
-                    )
-                    ->withInput();
-            }
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Get students
-        |--------------------------------------------------------------------------
-        */
-        $students = $folder->students()
-            ->orderByRaw('CAST(roll_number AS UNSIGNED) ASC')
-            ->orderBy('roll_number')
-            ->orderBy('id')
-            ->get();
-
-
-        $statuses = $request->input('status', []);
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Check every applicable student
-        |--------------------------------------------------------------------------
-        */
-        $missingStudents = [];
-
-        foreach ($students as $student) {
-
-            $studentAddedDate = $student->created_at
-                ? Carbon::parse($student->created_at)->toDateString()
-                : null;
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Student was not added on selected date
-            |--------------------------------------------------------------------------
-            */
-            if (
-                $studentAddedDate &&
-                $selectedDate < $studentAddedDate
-            ) {
-                continue;
-            }
-
-
-            /*
-            |--------------------------------------------------------------------------
-            | Every applicable student MUST have status
-            |--------------------------------------------------------------------------
-            */
-            if (
-                !isset($statuses[$student->id]) ||
-                !in_array(
-                    $statuses[$student->id],
-                    ['present', 'absent'],
-                    true
-                )
-            ) {
-
-                $missingStudents[] = $student->name;
-            }
-        }
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | Partial attendance not allowed
-        |--------------------------------------------------------------------------
-        */
-        if (count($missingStudents) > 0) {
-
             return back()
                 ->with(
                     'error',
-                    'Please mark Present or Absent for every applicable student before submitting.'
+                    'Future date attendance is not allowed.'
                 )
                 ->withInput();
         }
 
+        $students = $folder->students()
+            ->orderByRaw('CAST(roll_number AS UNSIGNED) ASC')
+            ->orderBy('roll_number', 'ASC')
+            ->orderBy('id', 'ASC')
+            ->get();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Save attendance
-        |--------------------------------------------------------------------------
-        |
-        | updateOrCreate prevents duplicate records.
-        | Existing attendance is updated, not deleted.
-        |
-        */
+        $statuses = $request->input('status', []);
+
         DB::transaction(function () use (
             $students,
             $statuses,
             $selectedDate,
             $folder
         ) {
-
             foreach ($students as $student) {
 
                 $studentAddedDate = $student->created_at
                     ? Carbon::parse($student->created_at)->toDateString()
                     : null;
 
-
-                /*
-                |--------------------------------------------------------------------------
-                | Before student added = no attendance
-                |--------------------------------------------------------------------------
-                */
                 if (
                     $studentAddedDate &&
                     $selectedDate < $studentAddedDate
@@ -385,6 +227,7 @@ class AttendanceController extends Controller
                     continue;
                 }
 
+                $statusToSave = $statuses[$student->id] ?? 'absent';
 
                 Attendance::updateOrCreate(
                     [
@@ -393,7 +236,7 @@ class AttendanceController extends Controller
                         'date' => $selectedDate,
                     ],
                     [
-                        'status' => $statuses[$student->id],
+                        'status' => $statusToSave,
                         'marked_by' => Auth::id(),
                         'marked_at' => now(),
                     ]
@@ -401,12 +244,6 @@ class AttendanceController extends Controller
             }
         });
 
-
-        /*
-        |--------------------------------------------------------------------------
-        | Success
-        |--------------------------------------------------------------------------
-        */
         return redirect()
             ->route(
                 'admin.attendance.show',
@@ -421,73 +258,224 @@ class AttendanceController extends Controller
             );
     }
 
-
     /*
     |--------------------------------------------------------------------------
-    | Unlock Past Attendance
+    | Student 10 Click Unlock
     |--------------------------------------------------------------------------
     */
-    public function unlockPast(Request $request, $id)
+    public function unlockPast(Request $request, $folderId, $studentId)
     {
-        $folder = $this->ownedFolder($id);
+        [$folder, $student] =
+            $this->ownedStudent($folderId, $studentId);
 
+        $key =
+            'attendance_history_clicks_' .
+            $folder->id .
+            '_' .
+            $student->id;
 
-        /*
-        |--------------------------------------------------------------------------
-        | Client sends 10 clicks
-        |--------------------------------------------------------------------------
-        */
-        $clickCount = (int) $request->input('click_count', 0);
+        $clickCount =
+            (int) session()->get($key, 0);
 
+        $clickCount++;
 
-        if ($clickCount < 10) {
-
-            return back()
-                ->with(
-                    'error',
-                    'Complete the 10-click unlock sequence.'
-                );
+        if ($clickCount > 10) {
+            $clickCount = 10;
         }
 
+        session()->put($key, $clickCount);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Unlock for this folder
-        |--------------------------------------------------------------------------
-        */
+        if ($clickCount < 10) {
+            return response()->json([
+                'success' => true,
+                'clicks' => $clickCount,
+                'unlocked' => false,
+            ]);
+        }
+
         session()->put(
-            'attendance_past_unlocked_' . $folder->id,
+            'attendance_history_unlocked_' .
+            $folder->id .
+            '_' .
+            $student->id,
             true
         );
 
+        session()->forget($key);
 
-        return back()
-            ->with(
-                'success',
-                'Past attendance unlocked.'
+        return redirect()
+            ->route(
+                'admin.attendance.history',
+                [
+                    'folderId' => $folder->id,
+                    'studentId' => $student->id,
+                ]
             );
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Student Attendance History
+    |--------------------------------------------------------------------------
+    */
+    public function history($folderId, $studentId)
+    {
+        [$folder, $student] =
+            $this->ownedStudent($folderId, $studentId);
+
+        $unlocked = session()->get(
+            'attendance_history_unlocked_' .
+            $folder->id .
+            '_' .
+            $student->id,
+            false
+        );
+
+        if (!$unlocked) {
+            return redirect()
+                ->route(
+                    'admin.attendance.show',
+                    $folder->id
+                )
+                ->with(
+                    'error',
+                    'Student attendance history is locked. Complete the 10-click unlock.'
+                );
+        }
+
+        $attendances = Attendance::where('folder_id', $folder->id)
+            ->where('student_id', $student->id)
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return view(
+            'admin.folders.student-history',
+            compact(
+                'folder',
+                'student',
+                'attendances'
+            )
+        );
+    }
 
     /*
     |--------------------------------------------------------------------------
-    | Lock Past Attendance
+    | Save / Change Specific Student Attendance
     |--------------------------------------------------------------------------
     */
-    public function lockPast($id)
-    {
-        $folder = $this->ownedFolder($id);
+    public function saveHistory(
+        Request $request,
+        $folderId,
+        $studentId
+    ) {
+        [$folder, $student] =
+            $this->ownedStudent($folderId, $studentId);
 
-
-        session()->forget(
-            'attendance_past_unlocked_' . $folder->id
+        $unlocked = session()->get(
+            'attendance_history_unlocked_' .
+            $folder->id .
+            '_' .
+            $student->id,
+            false
         );
 
+        if (!$unlocked) {
+            abort(403, 'Attendance history is locked.');
+        }
 
-        return back()
+        $validated = $request->validate([
+            'date' => ['required', 'date'],
+            'status' => ['required', 'in:present,absent'],
+        ]);
+
+        $selectedDate = Carbon::parse(
+            $validated['date']
+        )->toDateString();
+
+        $today = Carbon::today()->toDateString();
+
+        if ($selectedDate > $today) {
+            return back()
+                ->with(
+                    'error',
+                    'Future attendance is not allowed.'
+                );
+        }
+
+        $studentAddedDate = $student->created_at
+            ? Carbon::parse($student->created_at)->toDateString()
+            : null;
+
+        if (
+            $studentAddedDate &&
+            $selectedDate < $studentAddedDate
+        ) {
+            return back()
+                ->with(
+                    'error',
+                    'Attendance cannot be added before the student was added.'
+                );
+        }
+
+        Attendance::updateOrCreate(
+            [
+                'folder_id' => $folder->id,
+                'student_id' => $student->id,
+                'date' => $selectedDate,
+            ],
+            [
+                'status' => $validated['status'],
+                'marked_by' => Auth::id(),
+                'marked_at' => now(),
+            ]
+        );
+
+        return redirect()
+            ->route(
+                'admin.attendance.history',
+                [
+                    'folderId' => $folder->id,
+                    'studentId' => $student->id,
+                ]
+            )
             ->with(
                 'success',
-                'Past attendance locked again.'
+                'Attendance updated successfully.'
+            );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Lock Student History
+    |--------------------------------------------------------------------------
+    */
+    public function lockHistory($folderId, $studentId)
+    {
+        [$folder, $student] =
+            $this->ownedStudent($folderId, $studentId);
+
+        session()->forget(
+            'attendance_history_unlocked_' .
+            $folder->id .
+            '_' .
+            $student->id
+        );
+
+        session()->forget(
+            'attendance_history_unlost_clicks_' .
+            $folder->id .
+            '_' .
+            $student->id
+        );
+
+        return redirect()
+            ->route(
+                'admin.attendance.show',
+                $folder->id
+            )
+            ->with(
+                'success',
+                'Student attendance history locked again.'
             );
     }
 }
