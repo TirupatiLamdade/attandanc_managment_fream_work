@@ -96,7 +96,7 @@
         $absentCount = 0;
 
         foreach ($folder->students as $student) {
-            $status = $attendances[$student->id] ?? null;
+            $status = $selected_status[$student->id] ?? null;
             if ($status === 'present') {
                 $presentCount++;
             } elseif ($status === 'absent') {
@@ -150,7 +150,7 @@
                     <tbody id="studentTableBody">
                         <?php $__empty_1 = true; $__currentLoopData = $folder->students; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $student): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                             <?php
-                                $currentStatus = $attendances[$student->id] ?? null;
+                                $currentStatus = $selected_status[$student->id] ?? null;
                             ?>
                             <tr class="border-b border-border hover:bg-surfaceHover transition-colors student-row"
                                 data-search="<?php echo e(strtolower(($student->name ?? '') . ' ' . ($student->roll_number ?? '') . ' ' . ($student->branch ?? '') . ' ' . ($student->phone ?? ''))); ?>"
@@ -177,7 +177,7 @@
                                             <span class="px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 bg-success/10 border border-success/40 text-success">
                                                 ✓ Present
                                             </span>
-                                        <?php else: ?>
+                                        <?php elseif($currentStatus === 'absent'): ?>
                                             <span class="px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 bg-danger/10 border border-danger/40 text-danger">
                                                 ✕ Absent
                                             </span>
@@ -321,7 +321,6 @@
             document.addEventListener('click', () => flashAlert.remove(), { once: true });
         }
 
-        // Live Search Handler with Styled Professional Icon & Message
         const searchInput = document.getElementById('studentSearch');
         if (searchInput) {
             searchInput.addEventListener('input', function() {

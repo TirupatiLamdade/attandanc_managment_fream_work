@@ -4,11 +4,12 @@
     <meta charset="utf-8">
     <title>My Attendance Report - {{ $folder->name }}</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #f4f5f7; }
-        h1 { color: #2E3440; }
+        body { font-family: Arial, sans-serif; color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 12px; }
+        th { background-color: #f4f5f7; color: #2E3440; }
+        h1 { color: #2E3440; font-size: 22px; margin-bottom: 5px; }
+        p { font-size: 13px; color: #666; }
     </style>
 </head>
 <body>
@@ -33,9 +34,9 @@
         <tbody>
             @foreach($studentsData as $data)
             <tr>
-                <td>{{ $data['name'] }}</td>
-                <td>{{ $data['roll'] }}</td>
-                <td>{{ $data['branch'] }}</td>
+                <td>{{ $data['student']->name ?? $data['name'] ?? '' }}</td>
+                <td>{{ $data['student']->roll_number ?? $data['roll'] ?? '' }}</td>
+                <td>{{ $data['student']->branch ?? $data['branch'] ?? '' }}</td>
                 <td>{{ $data['present'] }}</td>
                 <td>{{ $data['absent'] }}</td>
                 <td>{{ $data['percentage'] }}%</td>

@@ -2,9 +2,34 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
-class SubjectStudent extends Pivot
+class Student extends Model
 {
-    protected $table = 'subject_students';
+    use HasFactory;
+
+    protected $fillable = [
+        'folder_id',
+        'name',
+        'roll_number',
+        'branch',
+        'phone',
+        'serno',
+    ];
+
+    public function folder()
+    {
+        return $this->belongsTo(Folder::class);
+    }
+
+    public function subjects()
+    {
+        return $this->belongsToMany(SubjectFolder::class, 'subject_students', 'student_id', 'subject_folder_id');
+    }
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
 }

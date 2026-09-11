@@ -44,10 +44,6 @@
         </div>
     </div>
 
-    <?php
-        $today = \Carbon\Carbon::today()->toDateString();
-    ?>
-
     
     <div class="mb-12">
         <h2 class="text-xl font-bold text-textPrimary mb-6 flex items-center gap-2">
@@ -60,11 +56,7 @@
                 <?php $__currentLoopData = $folders; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $folder): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <?php
                         $totalStudents = $folder->students()->count();
-                        // Check if attendance is explicitly saved/marked for today
-                        $markedToday = \App\Models\Attendance::where('folder_id', $folder->id)
-                            ->where('date', $today)
-                            ->whereIn('status', ['present', 'absent'])
-                            ->exists();
+                        $markedToday = $folder->marked_today ?? false;
                     ?>
 
                     <a
@@ -82,7 +74,6 @@
                                 <?php endif; ?>
                             </div>
 
-                            
                             <?php if($markedToday): ?>
                                 <span class="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-bold inline-flex items-center gap-1 shadow-sm shrink-0">
                                     ✓ Marked
@@ -94,9 +85,22 @@
                             <span class="text-textMuted font-medium">
                                 Total Students: <strong class="text-textPrimary"><?php echo e($totalStudents); ?></strong>
                             </span>
-                            <span class="text-orangeAccent font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                                Mark Attendance &rarr;
-                            </span>
+                            
+                            <?php if($totalStudents > 0): ?>
+                                <?php if($markedToday): ?>
+                                    <span class="text-emerald-400 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                                        Attendance Marked &rarr;
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-amber-500 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                                        Not Marked &rarr;
+                                    </span>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span class="text-textMuted text-xs italic">
+                                    No students
+                                </span>
+                            <?php endif; ?>
                         </div>
                     </a>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -120,10 +124,7 @@
                 <?php $__currentLoopData = $subjects; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $subject): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <?php
                         $totalStudents = $subject->students()->count();
-                        $markedToday = \App\Models\Attendance::where('folder_id', $subject->id)
-                            ->where('date', $today)
-                            ->whereIn('status', ['present', 'absent'])
-                            ->exists();
+                        $markedToday = $subject->marked_today ?? false;
                     ?>
 
                     <a
@@ -149,9 +150,22 @@
                             <span class="text-textMuted font-medium">
                                 Total Students: <strong class="text-textPrimary"><?php echo e($totalStudents); ?></strong>
                             </span>
-                            <span class="text-blue-400 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                                Mark Attendance &rarr;
-                            </span>
+
+                            <?php if($totalStudents > 0): ?>
+                                <?php if($markedToday): ?>
+                                    <span class="text-emerald-400 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                                        Attendance Marked &rarr;
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-amber-500 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                                        Not Marked &rarr;
+                                    </span>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span class="text-textMuted text-xs italic">
+                                    No students
+                                </span>
+                            <?php endif; ?>
                         </div>
                     </a>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>

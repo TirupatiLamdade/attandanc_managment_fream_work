@@ -206,10 +206,37 @@ Route::middleware(['admin'])
             [SubjectController::class, 'show']
         )->name('admin.subjects.show');
 
+        // Added Subject Delete Route to fix Method Not Allowed Error
+        Route::delete(
+            '/subjects/{id}',
+            [SubjectController::class, 'destroy']
+        )->name('admin.subjects.destroy');
+
         Route::get(
             '/subjects/{id}/students',
             [SubjectController::class, 'students']
         )->name('admin.subjects.students');
+
+        // Subject Students Actions Routes
+        Route::post(
+            '/subjects/{id}/students',
+            [SubjectController::class, 'storeStudent']
+        )->name('admin.subjects.students.store');
+
+        Route::post(
+            '/subjects/{id}/copy-students',
+            [SubjectController::class, 'copyStudents']
+        )->name('admin.subjects.students.copy');
+
+        Route::put(
+            '/subject-students/{id}',
+            [SubjectController::class, 'updateStudent']
+        )->name('admin.subjects.students.update');
+
+        Route::delete(
+            '/subject-students/{id}',
+            [SubjectController::class, 'destroyStudent']
+        )->name('admin.subjects.students.destroy');
 
         Route::post(
             '/subjects/{id}/select-students',
@@ -235,6 +262,12 @@ Route::middleware(['admin'])
             '/subjects/{id}/total',
             [SubjectReportController::class, 'total']
         )->name('admin.subjects.total');
+
+        // Added Subject PDF Report Route
+        Route::get(
+            '/subjects/{id}/pdf',
+            [SubjectReportController::class, 'pdf']
+        )->name('admin.subjects.pdf');
     });
 
 
@@ -290,13 +323,11 @@ Route::middleware(['staff'])
             [StaffAttendanceController::class, 'submit']
         )->name('staff.attendance.submit');
 
-        // Route for folder deletion from staff panel
         Route::delete(
             '/folders/{id}',
             [StaffAttendanceController::class, 'destroy']
         )->name('staff.folders.destroy');
 
-        // Route for staff to view attendance report directly from mark page
         Route::get(
             '/folders/{id}/report',
             [ReportController::class, 'show']

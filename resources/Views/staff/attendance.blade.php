@@ -95,7 +95,7 @@
         $absentCount = 0;
 
         foreach ($folder->students as $student) {
-            $status = $attendances[$student->id] ?? null;
+            $status = $selected_status[$student->id] ?? null;
             if ($status === 'present') {
                 $presentCount++;
             } elseif ($status === 'absent') {
@@ -149,7 +149,7 @@
                     <tbody id="studentTableBody">
                         @forelse($folder->students as $student)
                             @php
-                                $currentStatus = $attendances[$student->id] ?? null;
+                                $currentStatus = $selected_status[$student->id] ?? null;
                             @endphp
                             <tr class="border-b border-border hover:bg-surfaceHover transition-colors student-row"
                                 data-search="{{ strtolower(($student->name ?? '') . ' ' . ($student->roll_number ?? '') . ' ' . ($student->branch ?? '') . ' ' . ($student->phone ?? '')) }}"
@@ -175,7 +175,7 @@
                                             <span class="px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 bg-success/10 border border-success/40 text-success">
                                                 ✓ Present
                                             </span>
-                                        @else
+                                        @elseif($currentStatus === 'absent')
                                             <span class="px-4 py-2 rounded-xl text-xs font-bold inline-flex items-center gap-1.5 bg-danger/10 border border-danger/40 text-danger">
                                                 ✕ Absent
                                             </span>
@@ -319,7 +319,6 @@
             document.addEventListener('click', () => flashAlert.remove(), { once: true });
         }
 
-        // Live Search Handler with Styled Professional Icon & Message
         const searchInput = document.getElementById('studentSearch');
         if (searchInput) {
             searchInput.addEventListener('input', function() {

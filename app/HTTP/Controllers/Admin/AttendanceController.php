@@ -89,34 +89,6 @@ class AttendanceController extends Controller
             }
         }
 
-        // Auto-mark all applicable students as 'present' ONLY if it's a PAST missed date and no attendance exists yet
-        $existingCount = Attendance::where('folder_id', $folder->id)
-            ->where('date', $selectedDate)
-            ->count();
-
-        if ($existingCount === 0 && $selectedDate < $today) {
-            DB::transaction(function () use ($students, $selectedDate, $folder) {
-                foreach ($students as $student) {
-                    $studentAddedDate = $student->created_at
-                        ? Carbon::parse($student->created_at)->toDateString()
-                        : null;
-
-                    if ($studentAddedDate && $selectedDate < $studentAddedDate) {
-                        continue;
-                    }
-
-                    Attendance::create([
-                        'folder_id' => $folder->id,
-                        'student_id' => $student->id,
-                        'date' => $selectedDate,
-                        'status' => 'present', // Past missed date automatically becomes Present
-                        'marked_by' => Auth::id(),
-                        'marked_at' => now(),
-                    ]);
-                }
-            });
-        }
-
         $attendances = Attendance::where('folder_id', $folder->id)
             ->where('date', $selectedDate)
             ->get()

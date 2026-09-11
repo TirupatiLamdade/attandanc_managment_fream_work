@@ -4,42 +4,48 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Models\Folder;
+use App\Models\SubjectFolder;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Call both admin seeder files
-        $this->call([
-            accountlogin::class,
-            HIddenseeder::class,
-        ]);
+        // Single Admin Account
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@attendance.com'],
+            [
+                'name' => 'Admin User',
+                'password' => Hash::make('admin123'),
+                'role' => 'admin',
+            ]
+        );
 
-        // Create Staff User
-        User::create([
-            'name' => 'Staff User',
-            'email' => 'staff@attendance.com',
-            'password' => Hash::make('staff123'),
-            'role' => 'staff',
-        ]);
+        // Staff User
+        User::firstOrCreate(
+            ['email' => 'staff@attendance.com'],
+            [
+                'name' => 'Staff User',
+                'password' => Hash::make('staff123'),
+                'role' => 'staff',
+            ]
+        );
 
-        // Demo folders mapping
-        $admin = User::where('email', 'admin1@attendance.com')->first();
-        
-        \App\Models\Folder::create([
+        // Demo Folders
+        Folder::firstOrCreate([
             'name' => 'Class A - FY BSc',
-            'created_by' => $admin ? $admin->id : 1,
+            'created_by' => $admin->id,
         ]);
 
-        \App\Models\Folder::create([
+        Folder::firstOrCreate([
             'name' => 'Class B - SY BSc',
-            'created_by' => $admin ? $admin->id : 1,
+            'created_by' => $admin->id,
         ]);
 
-        \App\Models\SubjectFolder::create([
+        SubjectFolder::firstOrCreate([
             'name' => 'Mathematics',
-            'created_by' => $admin ? $admin->id : 1,
+            'created_by' => $admin->id,
         ]);
     }
 }

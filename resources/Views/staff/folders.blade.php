@@ -44,10 +44,6 @@
         </div>
     </div>
 
-    @php
-        $today = \Carbon\Carbon::today()->toDateString();
-    @endphp
-
     {{-- CLASS FOLDERS SECTION --}}
     <div class="mb-12">
         <h2 class="text-xl font-bold text-textPrimary mb-6 flex items-center gap-2">
@@ -60,11 +56,7 @@
                 @foreach($folders as $folder)
                     @php
                         $totalStudents = $folder->students()->count();
-                        // Check if attendance is explicitly saved/marked for today
-                        $markedToday = \App\Models\Attendance::where('folder_id', $folder->id)
-                            ->where('date', $today)
-                            ->whereIn('status', ['present', 'absent'])
-                            ->exists();
+                        $markedToday = $folder->marked_today ?? false;
                     @endphp
 
                     <a
@@ -81,7 +73,6 @@
                                 @endif
                             </div>
 
-                            {{-- Show green tick ONLY if attendance is marked/saved today --}}
                             @if($markedToday)
                                 <span class="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-bold inline-flex items-center gap-1 shadow-sm shrink-0">
                                     ✓ Marked
@@ -93,9 +84,22 @@
                             <span class="text-textMuted font-medium">
                                 Total Students: <strong class="text-textPrimary">{{ $totalStudents }}</strong>
                             </span>
-                            <span class="text-orangeAccent font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                                Mark Attendance &rarr;
-                            </span>
+                            
+                            @if($totalStudents > 0)
+                                @if($markedToday)
+                                    <span class="text-emerald-400 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                                        Attendance Marked &rarr;
+                                    </span>
+                                @else
+                                    <span class="text-amber-500 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                                        Not Marked &rarr;
+                                    </span>
+                                @endif
+                            @else
+                                <span class="text-textMuted text-xs italic">
+                                    No students
+                                </span>
+                            @endif
                         </div>
                     </a>
                 @endforeach
@@ -119,10 +123,7 @@
                 @foreach($subjects as $subject)
                     @php
                         $totalStudents = $subject->students()->count();
-                        $markedToday = \App\Models\Attendance::where('folder_id', $subject->id)
-                            ->where('date', $today)
-                            ->whereIn('status', ['present', 'absent'])
-                            ->exists();
+                        $markedToday = $subject->marked_today ?? false;
                     @endphp
 
                     <a
@@ -147,9 +148,22 @@
                             <span class="text-textMuted font-medium">
                                 Total Students: <strong class="text-textPrimary">{{ $totalStudents }}</strong>
                             </span>
-                            <span class="text-blue-400 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
-                                Mark Attendance &rarr;
-                            </span>
+
+                            @if($totalStudents > 0)
+                                @if($markedToday)
+                                    <span class="text-emerald-400 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                                        Attendance Marked &rarr;
+                                    </span>
+                                @else
+                                    <span class="text-amber-500 font-bold group-hover:translate-x-1 transition-transform inline-flex items-center gap-1">
+                                        Not Marked &rarr;
+                                    </span>
+                                @endif
+                            @else
+                                <span class="text-textMuted text-xs italic">
+                                    No students
+                                </span>
+                            @endif
                         </div>
                     </a>
                 @endforeach

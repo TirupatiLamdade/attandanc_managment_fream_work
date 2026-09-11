@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Folder;
 use App\Models\Student;
+use App\Models\SubjectFolder;
+use App\Models\Attendance;
+use App\Models\SubjectAttendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
 
 class StudentController extends Controller
 {
@@ -18,6 +22,32 @@ class StudentController extends Controller
     {
         return Folder::where('created_by', Auth::id())
             ->findOrFail($id);
+    }
+
+    /**
+     * Student folder selection page with attendance status.
+     */
+    public function folders()
+    {
+        $today = Carbon::today()->toDateString();
+
+        $folders = Folder::where('created_by', Auth::id())->withCount('students')->get()->map(function ($folder) use ($today) {
+            $folder->today_attendance_marked = Attendance::where('folder_id', $folder->id)
+                ->where('date', $today)
+                ->whereIn('status', ['present', 'absent'])
+                ->exists();
+            return $folder;
+        });
+
+        $subjects = SubjectFolder::where('created_by', Auth::id())->withCount('students')->get()->map(function ($subject) use ($today) {
+            $subject->today_attendance_marked = SubjectAttendance::where('subject_folder_id', $subject->id)
+                ->where('date', $today)
+                ->whereIn('status', ['present', 'absent'])
+                ->exists();
+            return $subject;
+        });
+
+        return view('student.folders', compact('folders', 'subjects'));
     }
 
     /**
@@ -107,7 +137,6 @@ class StudentController extends Controller
         $formattedName = ucwords(strtolower(preg_replace('/\s+/', ' ', trim($validated['name']))));
         $formattedBranch = ucwords(strtolower(preg_replace('/\s+/', ' ', trim($validated['branch']))));
 
-        // Auto increment serno sequence within the specific folder
         $maxSerno = Student::where('folder_id', $folder->id)->max('serno') ?? 0;
         $nextSerno = $maxSerno + 1;
 
@@ -257,10 +286,6 @@ class StudentController extends Controller
 
         $folderId = $student->folder_id;
 
-        /*
-         * Delete student's attendance records together with student.
-         * This is intentionally controlled by admin delete action.
-         */
         $student->attendances()->delete();
 
         $student->delete();
